@@ -1204,8 +1204,6 @@ else()
  set( ANDROID_CXX_FLAGS "--sysroot=${ANDROID_SYSROOT}" )
 endif()
 
-#set( ANDROID_CXX_FLAGS         "${ANDROID_CXX_FLAGS} -std=c++11" )
-
 # NDK flags
 if (ARM64_V8A )
  set( ANDROID_CXX_FLAGS         "${ANDROID_CXX_FLAGS} -funwind-tables" )
