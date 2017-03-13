@@ -646,7 +646,10 @@ if( NOT ANDROID_SUPPORTED_ABIS )
 endif()
 
 # choose target ABI
-__INIT_VARIABLE( ANDROID_ABI VALUES ${ANDROID_SUPPORTED_ABIS} )
+# only set the ANDROID_ABI if it was not set
+if( NOT ANDROID_ABI )
+  __INIT_VARIABLE( ANDROID_ABI VALUES ${ANDROID_SUPPORTED_ABIS} )
+endif()
 # verify that target ABI is supported
 list( FIND ANDROID_SUPPORTED_ABIS "${ANDROID_ABI}" __androidAbiIdx )
 if( __androidAbiIdx EQUAL -1 )
@@ -656,6 +659,7 @@ if( __androidAbiIdx EQUAL -1 )
    " )
 endif()
 unset( __androidAbiIdx )
+
 
 # set target ABI options
 if( ANDROID_ABI STREQUAL "x86" )
@@ -1199,6 +1203,8 @@ if( ANDROID_SYSROOT MATCHES "[ ;\"]" )
 else()
  set( ANDROID_CXX_FLAGS "--sysroot=${ANDROID_SYSROOT}" )
 endif()
+
+#set( ANDROID_CXX_FLAGS         "${ANDROID_CXX_FLAGS} -std=c++11" )
 
 # NDK flags
 if (ARM64_V8A )
