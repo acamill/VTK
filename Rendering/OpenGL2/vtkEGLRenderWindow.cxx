@@ -29,7 +29,9 @@
 #include <sstream>
 #include <EGL/egl.h>
 
-
+#if ANDROID
+#include <android/native_window.h>
+#endif
 
 namespace
 {
@@ -392,10 +394,15 @@ void vtkEGLRenderWindow::DestroyWindow()
 // Initialize the window for rendering.
 void vtkEGLRenderWindow::WindowInitialize (void)
 {
+  vtkInternals* impl = this->Internals;
   if (this->OwnWindow)
     {
     this->CreateAWindow();
     }
+  else if (impl->Context == EGL_NO_CONTEXT)
+  {
+    impl->Context = eglGetCurrentContext();
+  }
 
   this->MakeCurrent();
 
@@ -419,7 +426,7 @@ void vtkEGLRenderWindow::Initialize (void)
     {
     this->WindowInitialize();
     }
-  else
+  else if( this->OwnWindow )
     {
     int w, h;
     this->GetEGLSurfaceSize(&w, &h);
