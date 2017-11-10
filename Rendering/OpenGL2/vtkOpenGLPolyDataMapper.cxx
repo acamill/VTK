@@ -1578,10 +1578,10 @@ void vtkOpenGLPolyDataMapper::ReplaceShaderDepth(
 {
   // If MSAA is enabled, don't write to gl_FragDepth unless we absolutely have
   // to. See VTK issue 16899.
-#if GL_ES_VERSION_3_0 != 1
+#if GL_ES_VERSION_3_0 != 1 && defined GL_MULTISAMPLE
   bool multisampling = glIsEnabled(GL_MULTISAMPLE) == GL_TRUE;
 #else
-  bool multisample = false;
+  bool multisampling = false;
 #endif
 
   if (!multisampling)

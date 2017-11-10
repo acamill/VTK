@@ -636,11 +636,13 @@ void vtkOpenGLRenderer::DevicePickRender()
   vtkOpenGLClearErrorMacro();
 
   bool msaaWasEnabled = false;
+#if GL_ES_VERSION_3_0 != 1 && defined GL_MULTISAMPLE
   if (this->RenderWindow->GetMultiSamples() > 0 && glIsEnabled(GL_MULTISAMPLE))
   {
     glDisable(GL_MULTISAMPLE);
     msaaWasEnabled = true;
   }
+#endif
 
   this->UpdateCamera();
   this->UpdateLightGeometry();
@@ -650,10 +652,12 @@ void vtkOpenGLRenderer::DevicePickRender()
 
   this->PickInfo->PerformedHardwarePick = true;
 
+#if GL_ES_VERSION_3_0 != 1 && defined GL_MULTISAMPLE
   if (msaaWasEnabled)
   {
     glEnable(GL_MULTISAMPLE);
   }
+#endif
   vtkOpenGLCheckErrorMacro("failed after DevicePickRender");
 }
 
