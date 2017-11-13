@@ -160,7 +160,18 @@ static void PolyLineToShading(const float *points, int numPoints,
 // namespace to work.
 static bool operator<(const vtkColor3f &a, const vtkColor3f &b)
 {
-  return a[0] < b[0] || a[1] < b[1] || a[2] < b[2];
+  for (int i = 0; i < 3; ++i)
+  {
+    if (a[i] < b[i])
+    {
+      return true;
+    }
+    else if (a[i] > b[i])
+    {
+      return false;
+    }
+  }
+  return false;
 }
 
 //------------------------------------------------------------------------------
@@ -603,7 +614,7 @@ void vtkPDFContextDevice2D::DrawColoredPolygon(float *points, int numPoints,
 
   // Just use the standard draw method if there is a texture or colors are not
   // specified:
-  if (this->Brush->GetTexture() != NULL ||
+  if (this->Brush->GetTexture() != nullptr ||
       nc_comps == 0)
   {
     this->DrawPolygon(points, numPoints);
@@ -828,7 +839,7 @@ void vtkPDFContextDevice2D::DrawString(float *point, const vtkStdString &string)
     HPDF_Page_TextRect(this->Impl->Page,
                        anchor[0], anchor[1],
                        anchor[0] + width, anchor[1] - height,
-                       string.c_str(), align, NULL);
+                       string.c_str(), align, nullptr);
 
     this->EndText();
   }
@@ -836,7 +847,7 @@ void vtkPDFContextDevice2D::DrawString(float *point, const vtkStdString &string)
   {
     vtkNew<vtkPath> path;
     int dpi = this->Renderer->GetRenderWindow()->GetDPI();
-    if (!tren->StringToPath(this->TextProp, string, path.Get(), dpi, backend))
+    if (!tren->StringToPath(this->TextProp, string, path, dpi, backend))
     {
       vtkErrorMacro("Error generating path for MathText string '"
                     << string << "'.");
@@ -844,7 +855,7 @@ void vtkPDFContextDevice2D::DrawString(float *point, const vtkStdString &string)
     }
 
     this->ApplyTextPropertyState();
-    this->DrawPath(path.Get(), point[0], point[1]);
+    this->DrawPath(path, point[0], point[1]);
     this->FillEvenOdd();
 
     float bbox[4];
@@ -990,7 +1001,7 @@ void vtkPDFContextDevice2D::DrawPolyData(
 {
   // Do nothing if the supported cell types do not exist in the dataset:
   vtkNew<vtkCellTypes> types;
-  polyData->GetCellTypes(types.Get());
+  polyData->GetCellTypes(types);
   if (!types->IsType(VTK_LINE) &&
       !types->IsType(VTK_TRIANGLE) &&
       !types->IsType(VTK_QUAD) &&

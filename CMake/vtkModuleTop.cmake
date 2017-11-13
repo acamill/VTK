@@ -176,24 +176,24 @@ endforeach()
 if (NOT VTK_BUILD_ALL_MODULES_FOR_TESTS)
   # If VTK_BUILD_ALL_MODULES_FOR_TESTS is OFF, it implies that we didn't add any
   # test modules to the dependecy graph. We now add the test modules for all
-  # enabled modules iff the all the test dependecies are already satisfied
+  # enabled modules if all the test dependencies are already satisfied
   # (BUG #13297).
   foreach(vtk-module IN LISTS VTK_MODULES_ENABLED)
     foreach(test IN LISTS ${vtk-module}_TESTED_BY)
       # if all test-dependencies are satisfied, enable it.
-      set (missing_dependencis)
+      set (missing_dependencies)
       foreach(test-depends IN LISTS ${test}_DEPENDS)
         list(FIND VTK_MODULES_ENABLED ${test-depends} found)
         if (found EQUAL -1)
-          list(APPEND missing_dependencis ${test-depends})
+          list(APPEND missing_dependencies ${test-depends})
         endif()
       endforeach()
-      if (NOT missing_dependencis)
+      if (NOT missing_dependencies)
         vtk_module_enable(${test} "")
         list(APPEND VTK_MODULES_ENABLED ${test})
       else()
         message(STATUS
-        "Disable test module ${test} since required modules are not enabled: ${missing_dependencis}")
+        "Disable test module ${test} since required modules are not enabled: ${missing_dependencies}")
       endif()
     endforeach()
   endforeach()
@@ -249,12 +249,12 @@ if(VTK_ENABLE_KITS)
 endif()
 
 
-# Report what will be built.
+# Record what will be built into a log file
 set(_modules_enabled_alpha "${VTK_MODULES_ENABLED}")
 list(SORT _modules_enabled_alpha)
 list(REMOVE_ITEM _modules_enabled_alpha vtkWrappingJava vtkWrappingPythonCore)
 list(LENGTH _modules_enabled_alpha _length)
-message(STATUS "Enabled ${_length} modules:")
+set(module_string "Enabled ${_length} modules:\n")
 foreach(vtk-module ${_modules_enabled_alpha})
   if(NOT ${vtk-module}_IS_TEST)
     if(Module_${vtk-module})
@@ -279,9 +279,12 @@ foreach(vtk-module ${_modules_enabled_alpha})
     else()
       set(_kit)
     endif()
-    message(STATUS " * ${vtk-module}${_kit}${_reason}")
+    string(CONCAT module_string "${module_string}" " * ${vtk-module}${_kit}${_reason}\n")
   endif()
 endforeach()
+
+set(vtk_module_log_filename "${VTK_BINARY_DIR}/CMakeFiles/VTKModules.log")
+file(WRITE ${vtk_module_log_filename} "${module_string}")
 
 # Hide options for modules that will build anyway.
 foreach(vtk-module ${VTK_MODULES_ALL})
@@ -294,7 +297,7 @@ foreach(vtk-module ${VTK_MODULES_ALL})
   endif()
 endforeach()
 
-#hide options of modules that are part of a different backend
+# Hide options of modules that are part of a different backend
 # or are required by the backend
 foreach(backend ${VTK_BACKENDS})
   foreach(module ${VTK_BACKEND_${backend}_MODULES})
@@ -353,13 +356,19 @@ macro(_vtk_build_module _module)
   add_subdirectory("${${_module}_SOURCE_DIR}" "${${_module}_BINARY_DIR}")
 endmacro()
 
+include(vtkTargetLinkLibrariesWithDynamicLookup)
+
 # Build all modules.
 foreach(kit IN LISTS vtk_modules_and_kits)
   if(_${kit}_is_kit)
     set(_vtk_build_as_kit ${kit})
     set(kit_srcs)
+    set(_optional_python_link)
     foreach(kit_module IN LISTS _${kit}_modules)
       list(APPEND kit_srcs $<TARGET_OBJECTS:${kit_module}Objects>)
+      if(${kit_module}_OPTIONAL_PYTHON_LINK)
+        set(_optional_python_link 1)
+      endif()
     endforeach()
 
     configure_file("${_VTKModuleMacros_DIR}/vtkKit.cxx.in"
@@ -398,6 +407,10 @@ foreach(kit IN LISTS vtk_modules_and_kits)
     target_link_libraries(${kit}
       LINK_PRIVATE ${kit_priv}
       LINK_PUBLIC  ${kit_pub})
+    if(_optional_python_link)
+      vtk_module_load(vtkPython)
+      vtk_target_link_libraries_with_dynamic_lookup(${kit} LINK_PUBLIC ${vtkPython_LIBRARIES})
+    endif()
     vtk_target(${kit})
   else()
     if(VTK_ENABLE_KITS)
@@ -425,6 +438,12 @@ foreach(vtk-module ${VTK_MODULES_ENABLED})
     list(APPEND VTK_CONFIG_MODULES_ENABLED ${vtk-module})
   endif()
 endforeach()
+
+# construct if this build of VTK has VTK-m enabled
+set(VTK_HAS_VTKM false)
+if(TARGET vtkm)
+  set(VTK_HAS_VTKM true)
+endif()
 
 # Generate VTKConfig.cmake for the build tree.
 set(VTK_CONFIG_CODE "
@@ -484,6 +503,7 @@ if (NOT VTK_INSTALL_NO_DEVELOPMENT)
                 ${VTK_BINARY_DIR}/VTKConfigVersion.cmake
                 CMake/vtkexportheader.cmake.in
                 CMake/VTKGenerateExportHeader.cmake
+                CMake/vtkInitializeBuildType.cmake
                 CMake/pythonmodules.h.in
                 CMake/UseVTK.cmake
                 CMake/FindTCL.cmake

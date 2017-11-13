@@ -93,11 +93,12 @@ int vtkmTriangleMeshPointNormals::RequestData(
 
   vtkm::filter::SurfaceNormals filter;
   filter.SetGenerateCellNormals(false);
+  filter.SetNormalizeCellNormals(false);
   filter.SetGeneratePointNormals(true);
   filter.SetPointNormalsName("Normals");
   auto result = filter.Execute(in, policy);
 
-  if (!result.IsValid())
+  if (!result.IsFieldValid())
   {
     vtkWarningMacro(<< "VTKm SurfaceNormals algorithm failed to run."
                     << "Falling back to vtkTriangleMeshPointNormals.");
@@ -118,7 +119,7 @@ int vtkmTriangleMeshPointNormals::RequestData(
 
   if (pointNormals)
   {
-    output->GetPointData()->SetNormals(pointNormals.GetPointer());
+    output->GetPointData()->SetNormals(pointNormals);
   }
 
   return 1;

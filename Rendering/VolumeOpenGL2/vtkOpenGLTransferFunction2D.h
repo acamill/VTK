@@ -162,7 +162,7 @@ public:
     {
       this->TextureObject->ReleaseGraphicsResources(window);
       this->TextureObject->Delete();
-      this->TextureObject = NULL;
+      this->TextureObject = nullptr;
     }
   }
 
@@ -171,18 +171,18 @@ protected:
   //--------------------------------------------------------------------------
   vtkOpenGLTransferFunction2D()
   : vtkObject()
-  , TextureObject(NULL)
+  , TextureObject(nullptr)
   , LastInterpolation(-1)
   {
   }
 
   //--------------------------------------------------------------------------
-  ~vtkOpenGLTransferFunction2D() VTK_OVERRIDE
+  ~vtkOpenGLTransferFunction2D() override
   {
     if (this->TextureObject)
     {
       this->TextureObject->Delete();
-      this->TextureObject = NULL;
+      this->TextureObject = nullptr;
     }
   }
 
@@ -193,9 +193,9 @@ protected:
 
 private:
   vtkOpenGLTransferFunction2D(const vtkOpenGLTransferFunction2D&)
-    VTK_DELETE_FUNCTION;
+    = delete;
   vtkOpenGLTransferFunction2D& operator=(const vtkOpenGLTransferFunction2D&)
-    VTK_DELETE_FUNCTION;
+    = delete;
 };
 
 vtkStandardNewMacro(vtkOpenGLTransferFunction2D);
@@ -242,7 +242,7 @@ public:
   {
     if (i >= this->Tables.size())
     {
-      return NULL;
+      return nullptr;
     }
     return this->Tables[i];
   }
@@ -264,11 +264,11 @@ public:
   }
 
 private:
-  vtkOpenGLTransferFunctions2D() VTK_DELETE_FUNCTION;
+  vtkOpenGLTransferFunctions2D() = delete;
   vtkOpenGLTransferFunctions2D(const vtkOpenGLTransferFunctions2D& other)
-    VTK_DELETE_FUNCTION;
+    = delete;
   vtkOpenGLTransferFunctions2D& operator=(const vtkOpenGLTransferFunctions2D& other)
-    VTK_DELETE_FUNCTION;
+    = delete;
 
   std::vector<vtkOpenGLTransferFunction2D*> Tables;
 };

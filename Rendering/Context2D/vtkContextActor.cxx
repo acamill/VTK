@@ -84,15 +84,17 @@ namespace
       T Data[4];
   };
 
-  template <class T>
-    ostream& operator << (ostream& str, const vtkViewportSpecification<T>& other)
-  {
-      str << other.data()[0] << ", "
-        << other.data()[1] << ", "
-        << other.data()[2] << ", "
-        << other.data()[3];
-      return str;
-  }
+  // Uncomment for debugging if desired
+  //
+  // template <class T>
+  //   ostream& operator << (ostream& str, const vtkViewportSpecification<T>& other)
+  // {
+  //     str << other.data()[0] << ", "
+  //       << other.data()[1] << ", "
+  //       << other.data()[2] << ", "
+  //       << other.data()[3];
+  //     return str;
+  // }
 
   // use this method to convert from normalized-to-display space i.e. [0.0, 1.0]
   // to screen pixels.
@@ -119,17 +121,17 @@ vtkContextActor::vtkContextActor()
   this->Initialized = false;
   this->Scene = vtkSmartPointer<vtkContextScene>::New();
 
-  this->Context->SetContext3D(this->Context3D.GetPointer());
+  this->Context->SetContext3D(this->Context3D);
 }
 
 //----------------------------------------------------------------------------
 vtkContextActor::~vtkContextActor()
 {
-  if (this->Context.GetPointer())
+  if (this->Context)
   {
     this->Context->End();
   }
-  if (this->Context3D.GetPointer())
+  if (this->Context3D)
   {
     this->Context3D->End();
   }
@@ -138,7 +140,7 @@ vtkContextActor::~vtkContextActor()
 //----------------------------------------------------------------------------
 vtkContextScene * vtkContextActor::GetScene()
 {
-  return this->Scene.GetPointer();
+  return this->Scene;
 }
 
 //----------------------------------------------------------------------------
@@ -182,7 +184,7 @@ int vtkContextActor::RenderOverlay(vtkViewport* viewport)
 {
   vtkDebugMacro(<< "vtkContextActor::RenderOverlay");
 
-  if (!this->Context.GetPointer())
+  if (!this->Context)
   {
     vtkErrorMacro(<< "vtkContextActor::Render - No painter set");
     return 0;
@@ -242,7 +244,7 @@ int vtkContextActor::RenderOverlay(vtkViewport* viewport)
 
   this->Context->GetDevice()->Begin(viewport);
   this->Scene->SetGeometry(size);
-  this->Scene->Paint(this->Context.GetPointer());
+  this->Scene->Paint(this->Context);
   this->Context->GetDevice()->End();
 
   return 1;
@@ -260,7 +262,7 @@ void vtkContextActor::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os,indent);
 
   os << indent << "Context: " << this->Context << "\n";
-  if (this->Context.GetPointer())
+  if (this->Context)
   {
     this->Context->PrintSelf(os, indent.GetNextIndent());
   }

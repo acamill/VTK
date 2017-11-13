@@ -44,12 +44,12 @@ class VTKFILTERSOPENTURNS_EXPORT vtkOTDensityMap : public vtkMultiBlockDataSetAl
 public:
   static vtkOTDensityMap* New();
   vtkTypeMacro(vtkOTDensityMap, vtkMultiBlockDataSetAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Check contour values to return actual mtime
    */
-  virtual vtkMTimeType GetMTime() VTK_OVERRIDE;
+  virtual vtkMTimeType GetMTime() override;
 
   //@{
   /**
@@ -120,11 +120,11 @@ public:
   virtual void SetContourApproximationNumberOfPoints(int val);
   //@}
 
-  virtual int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  virtual int FillInputPortInformation(int port, vtkInformation* info) override;
 
   virtual int RequestData(vtkInformation* request,
     vtkInformationVector** inputVector,
-    vtkInformationVector* outputVector) VTK_OVERRIDE;
+    vtkInformationVector* outputVector) override;
 
   /**
    * Key to recover density in output metadata
@@ -147,7 +147,7 @@ protected:
    * up is an input, allowing to specify the direction to follow. In any case, if the
    * next cell id cannot be found in this direction, the other direction will be tried, this is the
    * case where we consider the cell points are inverted.
-   * currentPointIndices is an optional output, if != NULL, the current cell points will be stored
+   * currentPointIndices is an optional output, if != nullptr, the current cell points will be stored
    * in.
    */
   virtual vtkIdType FindNextCellId(vtkPolyData* pd,
@@ -155,7 +155,7 @@ protected:
     vtkIdType previousCellId,
     bool& invertedPoints,
     bool up = true,
-    vtkIdList* currentPointIndices = NULL);
+    vtkIdList* currentPointIndices = nullptr);
 
   void ClearCache();
   void BuildContours(vtkPolyData* contourPd,
@@ -181,7 +181,7 @@ protected:
   int ContourApproximationNumberOfPoints;
 
 private:
-  void operator=(const vtkOTDensityMap&) VTK_DELETE_FUNCTION;
-  vtkOTDensityMap(const vtkOTDensityMap&) VTK_DELETE_FUNCTION;
+  void operator=(const vtkOTDensityMap&) = delete;
+  vtkOTDensityMap(const vtkOTDensityMap&) = delete;
 };
 #endif

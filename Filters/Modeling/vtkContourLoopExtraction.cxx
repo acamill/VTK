@@ -96,7 +96,7 @@ namespace {
     // Recall that we are working with 2-pt lines
     while ( !terminated )
     {
-      last = pts[1];
+      last = (pts[0]!=last ? pts[0] : pts[1]);
       numInserted++;
       t = dir * static_cast<double>(numInserted);
       sortedPoints.push_back(LoopPoint(t,last));
@@ -275,7 +275,7 @@ int vtkContourLoopExtraction::RequestData(
 
   vtkPointData *inPD = input->GetPointData();
 
-  vtkDataArray *scalars = NULL;
+  vtkDataArray *scalars = nullptr;
   if ( this->ScalarThresholding )
   {
     scalars = inPD->GetScalars();

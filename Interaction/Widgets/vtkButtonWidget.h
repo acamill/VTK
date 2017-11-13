@@ -74,7 +74,7 @@ public:
    * Standard macros.
    */
   vtkTypeMacro(vtkButtonWidget,vtkAbstractWidget);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   //@}
 
   /**
@@ -94,11 +94,20 @@ public:
   /**
    * Create the default widget representation if one is not set.
    */
-  void CreateDefaultRepresentation() VTK_OVERRIDE;
+  void CreateDefaultRepresentation() override;
+
+  /**
+   * The method for activating and deactivating this widget. This method
+   * must be overridden because it is a composite widget and does more than
+   * its superclasses' vtkAbstractWidget::SetEnabled() method. The
+   * method finds and sets the active viewport on the internal balloon
+   * representation.
+   */
+  void SetEnabled(int) override;
 
 protected:
   vtkButtonWidget();
-  ~vtkButtonWidget() VTK_OVERRIDE {}
+  ~vtkButtonWidget() override {}
 
   // These are the events that are handled
   static void SelectAction(vtkAbstractWidget*);
@@ -115,8 +124,8 @@ protected:
   };
 
 private:
-  vtkButtonWidget(const vtkButtonWidget&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkButtonWidget&) VTK_DELETE_FUNCTION;
+  vtkButtonWidget(const vtkButtonWidget&) = delete;
+  void operator=(const vtkButtonWidget&) = delete;
 };
 
 #endif

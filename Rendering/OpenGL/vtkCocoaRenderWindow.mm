@@ -483,7 +483,7 @@ const char* vtkCocoaRenderWindow::ReportCapabilities()
   strm  << "  stencil:  " << pfd << endl;
 
   [pixelFormat getValues: &pfd forAttribute: NSOpenGLPFAAccelerated forVirtualScreen: currentScreen];
-  strm  << "  hardware acceleration::  " << (pfd == 0 ? "No" : "Yes") << endl;
+  strm  << "  hardware acceleration:  " << (pfd == 0 ? "No" : "Yes") << endl;
 
   delete[] this->Capabilities;
 
@@ -663,67 +663,6 @@ void vtkCocoaRenderWindow::Frame()
   else
   {
     glFlush();
-  }
-}
-
-//----------------------------------------------------------------------------
-// Update system if needed due to stereo rendering.
-void vtkCocoaRenderWindow::StereoUpdate()
-{
-  // if stereo is on and it wasn't before
-  if (this->StereoRender && (!this->StereoStatus))
-  {
-    switch (this->StereoType)
-    {
-      case VTK_STEREO_CRYSTAL_EYES:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_RED_BLUE:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_ANAGLYPH:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_DRESDEN:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_INTERLACED:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_CHECKERBOARD:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_SPLITVIEWPORT_HORIZONTAL:
-        this->StereoStatus = 1;
-        break;
-    }
-  }
-  else if ((!this->StereoRender) && this->StereoStatus)
-  {
-    switch (this->StereoType)
-    {
-      case VTK_STEREO_CRYSTAL_EYES:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_RED_BLUE:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_ANAGLYPH:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_DRESDEN:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_INTERLACED:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_CHECKERBOARD:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_SPLITVIEWPORT_HORIZONTAL:
-        this->StereoStatus = 0;
-        break;
-    }
   }
 }
 
@@ -1019,6 +958,7 @@ void vtkCocoaRenderWindow::CreateGLContext()
       attribs[i++] = (NSOpenGLPixelFormatAttribute)8;
     }
 
+    // zero termination of list
     attribs[i++] = (NSOpenGLPixelFormatAttribute)0;
 
     // make sure that size of array was not exceeded
@@ -1031,6 +971,7 @@ void vtkCocoaRenderWindow::CreateGLContext()
       if (this->MultiSamples == 0)
       {
         // after trying with no multisamples, we are done
+        vtkWarningMacro(<< "No OpenGL context whatsoever could be created!");
         break;
       }
       else if (this->MultiSamples < 4)
@@ -1045,13 +986,16 @@ void vtkCocoaRenderWindow::CreateGLContext()
     }
   }
 
-  NSOpenGLContext *context = [[NSOpenGLContext alloc]
-                              initWithFormat:pixelFormat
-                                shareContext:nil];
+  NSOpenGLContext *context = nil;
+  if (pixelFormat)
+  {
+    context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat
+                                         shareContext:nil];
 
-  // This syncs the OpenGL context to the VBL to prevent tearing
-  GLint one = 1;
-  [context setValues:&one forParameter:NSOpenGLCPSwapInterval];
+    // This syncs the OpenGL context to the VBL to prevent tearing
+    GLint one = 1;
+    [context setValues:&one forParameter:NSOpenGLCPSwapInterval];
+  }
 
   this->SetPixelFormat((void*)pixelFormat);
   this->SetContextId((void*)context);
@@ -1552,7 +1496,7 @@ void vtkCocoaRenderWindow::SetCocoaManager(void *manager)
 //----------------------------------------------------------------------------
 void vtkCocoaRenderWindow::SetWindowInfo(char *info)
 {
-  // The paramater is an ASCII string of a decimal number representing
+  // The parameter is an ASCII string of a decimal number representing
   // a pointer to the window. Convert it back to a pointer.
   ptrdiff_t tmp = 0;
   if (info)
@@ -1566,7 +1510,7 @@ void vtkCocoaRenderWindow::SetWindowInfo(char *info)
 //----------------------------------------------------------------------------
 void vtkCocoaRenderWindow::SetParentInfo(char *info)
 {
-  // The paramater is an ASCII string of a decimal number representing
+  // The parameter is an ASCII string of a decimal number representing
   // a pointer to the window. Convert it back to a pointer.
   ptrdiff_t tmp = 0;
   if (info)

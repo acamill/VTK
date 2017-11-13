@@ -68,14 +68,14 @@ class VTKRENDERINGCORE_EXPORT vtkVolumeProperty : public vtkObject
 public:
   static vtkVolumeProperty *New();
   vtkTypeMacro(vtkVolumeProperty, vtkObject);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   void DeepCopy(vtkVolumeProperty *p);
 
   /**
    * Get the modified time for this object (or the properties registered
    * with this object).
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
   //@{
   /**
@@ -297,7 +297,7 @@ public:
    */
   bool HasGradientOpacity(int index = 0) {
     switch(this->TransferFunctionMode) {
-      case TF_1D: return (this->GradientOpacity[index] != NULL);
+      case TF_1D: return (this->GradientOpacity[index] != nullptr);
       case TF_2D: return true;
     }
     return false;
@@ -429,7 +429,7 @@ public:
 
 protected:
   vtkVolumeProperty();
-  ~vtkVolumeProperty() VTK_OVERRIDE;
+  ~vtkVolumeProperty() override;
 
   /**
    * WARNING: INTERNAL METHOD - NOT INTENDED FOR GENERAL USE
@@ -477,8 +477,8 @@ protected:
   double SpecularPower[VTK_MAX_VRCOMP];
 
 private:
-  vtkVolumeProperty(const vtkVolumeProperty&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkVolumeProperty&) VTK_DELETE_FUNCTION;
+  vtkVolumeProperty(const vtkVolumeProperty&) = delete;
+  void operator=(const vtkVolumeProperty&) = delete;
 };
 
 //@{

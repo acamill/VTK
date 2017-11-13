@@ -13,6 +13,17 @@
 //  the U.S. Government retains certain rights in this software.
 //
 //=============================================================================
+/**
+ * @class   vtkmExternalFaces
+ * @brief   generate External Faces of a DataSet
+ *
+ * vtkmExternalFaces is a filter that extracts all external faces from a
+ * data set. An external face is defined is defined as a face/side of a cell
+ * that belongs only to one cell in the entire mesh.
+ * @warning
+ * This filter is currently only supports propagation of point properties
+ *
+*/
 
 #ifndef vtkmExternalFaces_h
 #define vtkmExternalFaces_h
@@ -20,14 +31,13 @@
 #include "vtkAlgorithm.h"
 #include "vtkAcceleratorsVTKmModule.h" //required for correct implementation
 
-
 class vtkUnstructuredGrid;
 
 class VTKACCELERATORSVTKM_EXPORT vtkmExternalFaces : public vtkAlgorithm
 {
 public:
   vtkTypeMacro(vtkmExternalFaces, vtkAlgorithm)
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkmExternalFaces* New();
 
   /**
@@ -55,19 +65,19 @@ protected:
   vtkmExternalFaces();
   ~vtkmExternalFaces();
 
-  int FillInputPortInformation(int, vtkInformation *) VTK_OVERRIDE;
-  int FillOutputPortInformation(int, vtkInformation *) VTK_OVERRIDE;
+  int FillInputPortInformation(int, vtkInformation *) override;
+  int FillOutputPortInformation(int, vtkInformation *) override;
 
   int ProcessRequest(vtkInformation*, vtkInformationVector**,
-                     vtkInformationVector*) VTK_OVERRIDE;
+                     vtkInformationVector*) override;
   virtual int RequestData(vtkInformation *, vtkInformationVector **,
                           vtkInformationVector *);
 
   bool CompactPoints;
 
 private:
-  vtkmExternalFaces(const vtkmExternalFaces&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkmExternalFaces&) VTK_DELETE_FUNCTION;
+  vtkmExternalFaces(const vtkmExternalFaces&) = delete;
+  void operator=(const vtkmExternalFaces&) = delete;
 };
 
 #endif // vtkmExternalFaces_h

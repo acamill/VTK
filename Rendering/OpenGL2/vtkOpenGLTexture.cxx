@@ -38,11 +38,11 @@ vtkStandardNewMacro(vtkOpenGLTexture);
 // ---------------------------------------------------------------------------
 vtkOpenGLTexture::vtkOpenGLTexture()
 {
-  this->RenderWindow = 0;
+  this->RenderWindow = nullptr;
   this->IsDepthTexture = 0;
   this->TextureType = GL_TEXTURE_2D;
   this->ExternalTextureObject = false;
-  this->TextureObject = 0;
+  this->TextureObject = nullptr;
 }
 
 // ---------------------------------------------------------------------------
@@ -51,12 +51,12 @@ vtkOpenGLTexture::~vtkOpenGLTexture()
   if (this->RenderWindow)
   {
     this->ReleaseGraphicsResources(this->RenderWindow);
-    this->RenderWindow = 0;
+    this->RenderWindow = nullptr;
   }
   if (this->TextureObject)
   {
     this->TextureObject->Delete();
-    this->TextureObject = NULL;
+    this->TextureObject = nullptr;
   }
 }
 
@@ -69,7 +69,7 @@ void vtkOpenGLTexture::ReleaseGraphicsResources(vtkWindow *win)
     this->TextureObject->ReleaseGraphicsResources(win);
   }
 
-  this->RenderWindow = NULL;
+  this->RenderWindow = nullptr;
   this->Modified();
 }
 
@@ -82,11 +82,11 @@ void vtkOpenGLTexture::SetTextureObject(vtkTextureObject *textureObject)
   {
     vtkTextureObject* temp = this->TextureObject;
     this->TextureObject = textureObject;
-    if (this->TextureObject != NULL)
+    if (this->TextureObject != nullptr)
     {
       this->TextureObject->Register(this);
     }
-    if (temp != NULL)
+    if (temp != nullptr)
     {
       temp->UnRegister(this);
     }
@@ -178,10 +178,11 @@ void vtkOpenGLTexture::Load(vtkRenderer *ren)
       int xsize, ysize;
 
       this->RenderWindow = renWin;
-      if (this->TextureObject == 0)
+      if (this->TextureObject == nullptr)
       {
         this->TextureObject = vtkTextureObject::New();
       }
+      this->TextureObject->SetUseSRGBColorSpace(this->GetUseSRGBColorSpace());
       this->TextureObject->ResetFormatAndType();
       this->TextureObject->SetContext(renWin);
 
@@ -248,7 +249,7 @@ void vtkOpenGLTexture::Load(vtkRenderer *ren)
 
         // make sure using unsigned char data of color scalars type
         if (this->IsDepthTexture != 1 &&
-          (this->MapColorScalarsThroughLookupTable ||
+          (this->ColorMode == VTK_COLOR_MODE_MAP_SCALARS ||
            inscalars->GetDataType() != VTK_UNSIGNED_CHAR ))
         {
           dataPtr[i] = this->MapScalarsToColors (inscalars);
@@ -313,7 +314,7 @@ void vtkOpenGLTexture::Load(vtkRenderer *ren)
         if (resultData[i] != dataPtr[i])
         {
           delete [] resultData[i];
-          resultData[i] = 0;
+          resultData[i] = nullptr;
         }
       }
 
@@ -331,7 +332,7 @@ void vtkOpenGLTexture::Load(vtkRenderer *ren)
         if (this->Mipmap && levels > 1
             && (!this->CubeMap || majorV >= 4))
         {
-          this->TextureObject->SetMinificationFilter(vtkTextureObject::LinearMipmapNearest);
+          this->TextureObject->SetMinificationFilter(vtkTextureObject::LinearMipmapLinear);
           this->TextureObject->SetMaxLevel(levels - 1);
           this->TextureObject->SendParameters();
           glGenerateMipmap(this->TextureObject->GetTarget());

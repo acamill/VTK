@@ -52,12 +52,10 @@ vtkCxxSetObjectMacro(vtkSphereTree,DataSet,vtkDataSet);
 // overestimate the sphere size by 5-20%. Tighter spheres would improve
 // performance.
 
-
 // Type of sphere tree hierarchy generated
 #define VTK_SPHERE_TREE_HIERARCHY_NONE 0
 #define VTK_SPHERE_TREE_HIERARCHY_STRUCTURED 1
 #define VTK_SPHERE_TREE_HIERARCHY_UNSTRUCTURED 2
-
 
 // Different types of sphere tree hierarchies can be created. These are
 // basically data structures for different types of dataset (structured
@@ -160,6 +158,7 @@ namespace {
   {
     vtkDataSet *DataSet;
     double *Spheres;
+    bool ComputeBoundsAndRadius;
     double AverageRadius;
     double Bounds[6];
     vtkSMPThreadLocal<double> Radius;
@@ -172,7 +171,7 @@ namespace {
     vtkSMPThreadLocal<double> ZMax;
 
     DataSetSpheres(vtkDataSet *ds, double *s) :
-      DataSet(ds), Spheres(s), AverageRadius(0.0)
+      DataSet(ds), Spheres(s), ComputeBoundsAndRadius(true), AverageRadius(0.0)
     {
       this->Bounds[0] = this->Bounds[2] = this->Bounds[4] = 0.0;
       this->Bounds[1] = this->Bounds[3] = this->Bounds[5] = 0.0;
@@ -225,18 +224,21 @@ namespace {
                           (bounds[3]-sphere[1])*(bounds[3]-sphere[1]) +
                           (bounds[5]-sphere[2])*(bounds[5]-sphere[2]) );
 
-        // Keep a bounds for the dataset
-        r = sphere[3];
-        xmin = ((sphere[0]-r) < xmin ? (sphere[0]-r) : xmin);
-        xmax = ((sphere[0]+r) > xmax ? (sphere[0]+r) : xmax);
-        ymin = ((sphere[1]-r) < ymin ? (sphere[1]-r) : ymin);
-        ymax = ((sphere[1]+r) > ymax ? (sphere[1]+r) : ymax);
-        zmin = ((sphere[2]-r) < zmin ? (sphere[2]-r) : zmin);
-        zmax = ((sphere[2]+r) > zmax ? (sphere[2]+r) : zmax);
+        if (this->ComputeBoundsAndRadius)
+        {
+          // Keep a bounds for the dataset
+          r = sphere[3];
+          xmin = std::min(xmin, (sphere[0] - r));
+          xmax = std::max(xmax, (sphere[0] + r));
+          ymin = std::min(ymin, (sphere[1] - r));
+          ymax = std::max(ymax, (sphere[1] + r));
+          zmin = std::min(zmin, (sphere[2] - r));
+          zmax = std::max(zmax, (sphere[2] + r));
 
-        // Keep a running average of the radius
-        count++;
-        radius = radius + (r - radius) / static_cast<double>(count);;
+          // Keep a running average of the radius
+          count++;
+          radius = radius + (r - radius) / static_cast<double>(count);
+        }
       }
     }
 
@@ -314,7 +316,8 @@ namespace {
     }
 
     static void Execute(vtkIdType numCells, vtkDataSet *ds,
-                        double *s, double& aveRadius, double sphereBounds[6])
+                        double *s, bool vtkNotUsed(computeBoundsAndRadius),
+                        double& aveRadius, double sphereBounds[6])
     {
       if (ds->GetNumberOfCells() > 0 && numCells <= ds->GetNumberOfCells())
       {
@@ -371,18 +374,20 @@ namespace {
         }
         vtkSphere::ComputeBoundingSphere(cellPts, numCellPts, sphere, nullptr);
 
-        // Keep a bounds for the grid
-        r = sphere[3];
-        xmin = ((sphere[0]-r) < xmin ? (sphere[0]-r) : xmin);
-        xmax = ((sphere[0]+r) > xmax ? (sphere[0]+r) : xmax);
-        ymin = ((sphere[1]-r) < ymin ? (sphere[1]-r) : ymin);
-        ymax = ((sphere[1]+r) > ymax ? (sphere[1]+r) : ymax);
-        zmin = ((sphere[2]-r) < zmin ? (sphere[2]-r) : zmin);
-        zmax = ((sphere[2]+r) > zmax ? (sphere[2]+r) : zmax);
-
-        // Keep a running average of the radius
-        count++;
-        radius = radius + (r - radius) / static_cast<double>(count);;
+        if (this->ComputeBoundsAndRadius)
+        {
+          // Keep a bounds for the grid
+          r = sphere[3];
+          xmin = std::min(xmin, (sphere[0] - r));
+          xmax = std::max(xmax, (sphere[0] + r));
+          ymin = std::min(ymin, (sphere[1] - r));
+          ymax = std::max(ymax, (sphere[1] + r));
+          zmin = std::min(zmin, (sphere[2] - r));
+          zmax = std::max(zmax, (sphere[2] + r));
+          // Keep a running average of the radius
+          count++;
+          radius = radius + (r - radius) / static_cast<double>(count);
+        }
       }
     }
 
@@ -392,13 +397,14 @@ namespace {
     }
 
     static void Execute(vtkIdType numCells, vtkUnstructuredGrid *grid,
-                        double *s, double& aveRadius, double sphereBounds[6])
+                        double *s, bool vtkNotUsed(computeBoundsAndRadius),
+                        double& aveRadius, double sphereBounds[6])
     {
       if (grid->GetNumberOfCells() > 0 && numCells <= grid->GetNumberOfCells())
       {
         // Dummy call to GetCellPoints to enable its uses in the threaded code
         vtkNew<vtkIdList> dummy;
-        grid->GetCellPoints(0, dummy.Get());
+        grid->GetCellPoints(0, dummy);
 
         UnstructuredSpheres spheres(grid, s);
         vtkSMPTools::For(0, numCells, spheres);
@@ -408,7 +414,6 @@ namespace {
     }
 
   };
-
 
   //----------------------------------------------------------------------------
   // Compute bounds for each cell in a structured grid
@@ -431,22 +436,13 @@ namespace {
 
     void operator() (vtkIdType slice, vtkIdType endSlice)
     {
-      double *p, cellPts[24], r;
+      double *p, cellPts[24];
       vtkIdType cellIds[8], ptId, idx, i, j, jOffset, kOffset, sliceOffset, hint[2];
       hint[0]=0; hint[1]=6;
       int *dims = this->Dims;
       sliceOffset = static_cast<vtkIdType>(dims[0])*dims[1];
       vtkPoints *inPts=this->Points;
       double *sphere = this->Spheres + slice*4*(dims[0]-1)*(dims[1]-1);
-      double& radius = this->Radius.Local();
-      vtkIdType& count = this->Count.Local();
-      double& xmin = this->XMin.Local();
-      double& ymin = this->YMin.Local();
-      double& zmin = this->ZMin.Local();
-      double& xmax = this->XMax.Local();
-      double& ymax = this->YMax.Local();
-      double& zmax = this->ZMax.Local();
-
       for ( ; slice < endSlice; ++slice)
       {
         kOffset = slice*sliceOffset;
@@ -472,20 +468,6 @@ namespace {
             }
 
             vtkSphere::ComputeBoundingSphere(cellPts, 8, sphere, hint);
-
-            // Keep a bounds for the grid
-            r = sphere[3];
-            xmin = ((sphere[0]-r) < xmin ? (sphere[0]-r) : xmin);
-            xmax = ((sphere[0]+r) > xmax ? (sphere[0]+r) : xmax);
-            ymin = ((sphere[1]-r) < ymin ? (sphere[1]-r) : ymin);
-            ymax = ((sphere[1]+r) > ymax ? (sphere[1]+r) : ymax);
-            zmin = ((sphere[2]-r) < zmin ? (sphere[2]-r) : zmin);
-            zmax = ((sphere[2]+r) > zmax ? (sphere[2]+r) : zmax);
-
-            // Keep a running average of the radius
-            count++;
-            radius = radius + (r - radius) / static_cast<double>(count);;
-
             sphere += 4;
           }//i
         }//j
@@ -1067,8 +1049,6 @@ namespace {
 
 }//anonymous namespace
 
-
-
 //================================Sphere Tree class proper===================
 //----------------------------------------------------------------------------
 // Construct object.
@@ -1144,9 +1124,9 @@ void vtkSphereTree::BuildTreeSpheres(vtkDataSet *input)
 {
   // See if anything has to be done
   if ( this->Tree != nullptr && this->BuildTime > this->MTime )
-    {
+  {
     return;
-    }
+  }
   else if(this->Tree != nullptr)
   {
     this->Tree->Delete();
@@ -1171,13 +1151,13 @@ void vtkSphereTree::BuildTreeSpheres(vtkDataSet *input)
 
   else if (input->GetDataObjectType() == VTK_UNSTRUCTURED_GRID)
   {
-    UnstructuredSpheres::Execute(numCells, vtkUnstructuredGrid::SafeDownCast(input),
-                                 this->TreePtr, this->AverageRadius, this->SphereBounds);
+    UnstructuredSpheres::Execute(numCells, vtkUnstructuredGrid::SafeDownCast(input), this->TreePtr,
+                                 this->BuildHierarchy, this->AverageRadius, this->SphereBounds);
   }
 
   else //default algorithm
   {
-    DataSetSpheres::Execute(numCells, input, this->TreePtr,
+    DataSetSpheres::Execute(numCells, input, this->TreePtr, this->BuildHierarchy,
                             this->AverageRadius, this->SphereBounds);
   }
 
@@ -1209,7 +1189,6 @@ BuildTreeHierarchy(vtkDataSet *input)
 
   this->BuildTime.Modified();
 }
-
 
 //================Specialized methods for structured grids====================
 //----------------------------------------------------------------------------
@@ -1367,6 +1346,11 @@ BuildUnstructuredHierarchy(vtkDataSet *input, double *tree)
   // a grid cell should be this->Resolution times bigger than the average
   // radius (in each direction).
   double spacing[3], r=this->AverageRadius, *bds=this->SphereBounds;
+  if (bds[1] <= bds[0] || bds[3] <= bds[2] || bds[5] <= bds[4])
+  {
+    vtkWarningMacro("Invalid bounds, cannot compute tree hierarchy");
+    return;
+  }
   int dims[3], res=this->Resolution;
   for (int i=0; i<3; ++i)
   {

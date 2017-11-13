@@ -23,6 +23,7 @@
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMergePoints.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkPolyData.h"
 #include "vtkSmartPointer.h"
@@ -45,10 +46,10 @@ vtkCxxSetObjectMacro(vtkSTLReader, Locator, vtkIncrementalPointLocator);
 // Construct object with merging set to true.
 vtkSTLReader::vtkSTLReader()
 {
-  this->FileName = NULL;
+  this->FileName = nullptr;
   this->Merging = 1;
   this->ScalarTags = 0;
-  this->Locator = NULL;
+  this->Locator = nullptr;
 
   this->SetNumberOfInputPorts(0);
 }
@@ -56,8 +57,8 @@ vtkSTLReader::vtkSTLReader()
 //------------------------------------------------------------------------------
 vtkSTLReader::~vtkSTLReader()
 {
-  this->SetFileName(0);
-  this->SetLocator(0);
+  this->SetFileName(nullptr);
+  this->SetLocator(nullptr);
 }
 
 //------------------------------------------------------------------------------
@@ -100,17 +101,17 @@ int vtkSTLReader::RequestData(
   }
 
   // Initialize
-  FILE *fp = fopen(this->FileName, "r");
-  if (fp == NULL)
+  FILE *fp = vtksys::SystemTools::Fopen(this->FileName, "r");
+  if (fp == nullptr)
   {
     vtkErrorMacro(<< "File " << this->FileName << " not found");
     this->SetErrorCode(vtkErrorCode::CannotOpenFileError);
     return 0;
   }
 
-  vtkPoints *newPts = vtkPoints::New();
-  vtkCellArray *newPolys = vtkCellArray::New();
-  vtkFloatArray *newScalars = 0;
+  vtkNew<vtkPoints> newPts;
+  vtkNew<vtkCellArray> newPolys;
+  vtkFloatArray *newScalars = nullptr;
 
   // Depending upon file type, read differently
   if (this->GetSTLFileType(this->FileName) == VTK_ASCII)
@@ -122,9 +123,13 @@ int vtkSTLReader::RequestData(
       newScalars = vtkFloatArray::New();
       newScalars->Allocate(5000);
     }
-    if (!this->ReadASCIISTL(fp, newPts, newPolys, newScalars))
+    if (!this->ReadASCIISTL(fp, newPts.Get(), newPolys.Get(), newScalars))
     {
       fclose(fp);
+      if(newScalars)
+      {
+        newScalars->Delete();
+      }
       return 0;
     }
   }
@@ -132,17 +137,25 @@ int vtkSTLReader::RequestData(
   {
     // Close file and reopen in binary mode.
     fclose(fp);
-    fp = fopen(this->FileName, "rb");
-    if (fp == NULL)
+    fp = vtksys::SystemTools::Fopen(this->FileName, "rb");
+    if (fp == nullptr)
     {
       vtkErrorMacro(<< "File " << this->FileName << " not found");
       this->SetErrorCode(vtkErrorCode::CannotOpenFileError);
+      if(newScalars)
+      {
+        newScalars->Delete();
+      }
       return 0;
     }
 
-    if (!this->ReadBinarySTL(fp, newPts, newPolys))
+    if (!this->ReadBinarySTL(fp, newPts.Get(), newPolys.Get()))
     {
       fclose(fp);
+      if(newScalars)
+      {
+        newScalars->Delete();
+      }
       return 0;
     }
   }
@@ -154,8 +167,8 @@ int vtkSTLReader::RequestData(
   fclose(fp);
 
   // If merging is on, create hash table and merge points/triangles.
-  vtkPoints *mergedPts = newPts;
-  vtkCellArray *mergedPolys = newPolys;
+  vtkPoints *mergedPts = newPts.Get();
+  vtkCellArray *mergedPolys = newPolys.Get();
   vtkFloatArray *mergedScalars = newScalars;
   if (this->Merging)
   {
@@ -170,14 +183,14 @@ int vtkSTLReader::RequestData(
     }
 
     vtkSmartPointer<vtkIncrementalPointLocator> locator = this->Locator;
-    if (this->Locator == NULL)
+    if (this->Locator == nullptr)
     {
       locator.TakeReference(this->NewDefaultLocator());
     }
     locator->InitPointInsertion(mergedPts, newPts->GetBounds());
 
     int nextCell = 0;
-    vtkIdType *pts = 0;
+    vtkIdType *pts = nullptr;
     vtkIdType npts;
     for (newPolys->InitTraversal(); newPolys->GetNextCell(npts, pts);)
     {
@@ -202,8 +215,6 @@ int vtkSTLReader::RequestData(
       nextCell++;
     }
 
-    newPts->Delete();
-    newPolys->Delete();
     if (newScalars)
     {
       newScalars->Delete();

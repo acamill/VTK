@@ -482,7 +482,10 @@ const char* vtkCocoaRenderWindow::ReportCapabilities()
   strm  << "  stencil:  " << pfd << endl;
 
   [pixelFormat getValues: &pfd forAttribute: NSOpenGLPFAAccelerated forVirtualScreen: currentScreen];
-  strm  << "  hardware acceleration::  " << (pfd == 0 ? "No" : "Yes") << endl;
+  strm  << "  hardware acceleration:  " << (pfd == 0 ? "No" : "Yes") << endl;
+
+  [pixelFormat getValues: &pfd forAttribute: NSOpenGLPFAOpenGLProfile forVirtualScreen: currentScreen];
+  strm  << "  profile version:  0x" << std::hex << pfd << endl;
 
   delete[] this->Capabilities;
 
@@ -559,6 +562,20 @@ void vtkCocoaRenderWindow::SetSize(int x, int y)
         [window setContentSize:newRect.size];
 
         resizing = false;
+      }
+    }
+
+    if (this->OffScreenInitialized)
+    {
+      if (!resizing)
+      {
+      resizing = true;
+      // we don't call DestroyOffScreenWindow/CreateOffScreenWindow here since
+      // those method destroy/release all graphics resources too which is not
+      // needed for a resize. All we want is to resize the FBO.
+      this->DestroyHardwareOffScreenWindow();
+      this->CreateHardwareOffScreenWindow(x, y);
+      resizing = false;
       }
     }
   }
@@ -647,67 +664,6 @@ void vtkCocoaRenderWindow::Frame()
   if (!this->AbortRender && this->DoubleBuffer && this->SwapBuffers)
   {
     [(NSOpenGLContext*)this->GetContextId() flushBuffer];
-  }
-}
-
-//----------------------------------------------------------------------------
-// Update system if needed due to stereo rendering.
-void vtkCocoaRenderWindow::StereoUpdate()
-{
-  // if stereo is on and it wasn't before
-  if (this->StereoRender && (!this->StereoStatus))
-  {
-    switch (this->StereoType)
-    {
-      case VTK_STEREO_CRYSTAL_EYES:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_RED_BLUE:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_ANAGLYPH:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_DRESDEN:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_INTERLACED:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_CHECKERBOARD:
-        this->StereoStatus = 1;
-        break;
-      case VTK_STEREO_SPLITVIEWPORT_HORIZONTAL:
-        this->StereoStatus = 1;
-        break;
-    }
-  }
-  else if ((!this->StereoRender) && this->StereoStatus)
-  {
-    switch (this->StereoType)
-    {
-      case VTK_STEREO_CRYSTAL_EYES:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_RED_BLUE:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_ANAGLYPH:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_DRESDEN:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_INTERLACED:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_CHECKERBOARD:
-        this->StereoStatus = 0;
-        break;
-      case VTK_STEREO_SPLITVIEWPORT_HORIZONTAL:
-        this->StereoStatus = 0;
-        break;
-    }
   }
 }
 
@@ -972,6 +928,19 @@ void vtkCocoaRenderWindow::CreateAWindow()
 //----------------------------------------------------------------------------
 void vtkCocoaRenderWindow::CreateGLContext()
 {
+  // If the deployment target is at least 10.10, prefer the 'OpenGL 4.1 Core
+  // Implementation', otherwise we'll fall back to the 'OpenGL 3.2 Core
+  // Implementation' (available since 10.7).
+  NSOpenGLPixelFormatAttribute profileVersion;
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+  profileVersion = NSOpenGLProfileVersion4_1Core;
+#else
+  profileVersion = NSOpenGLProfileVersion3_2Core;
+#endif
+
+  // Prefer hardware acceleration
+  NSOpenGLPixelFormatAttribute hardware = NSOpenGLPFAAccelerated;
+
   // keep trying to get different pixelFormats until successful
   NSOpenGLPixelFormat *pixelFormat = nil;
   while (pixelFormat == nil)
@@ -980,10 +949,8 @@ void vtkCocoaRenderWindow::CreateGLContext()
     NSOpenGLPixelFormatAttribute attribs[20];
 
     attribs[i++] = NSOpenGLPFAOpenGLProfile;
-    attribs[i++] = NSOpenGLProfileVersion3_2Core;
+    attribs[i++] = profileVersion;
 
-  //  OS X always prefers an accelerated context
-  //    attribs[i++] = NSOpenGLPFAAccelerated;
     attribs[i++] = NSOpenGLPFADepthSize;
     attribs[i++] = (NSOpenGLPixelFormatAttribute)32;
 
@@ -1007,6 +974,10 @@ void vtkCocoaRenderWindow::CreateGLContext()
       attribs[i++] = (NSOpenGLPixelFormatAttribute)8;
     }
 
+    // must be last in case it is 0
+    attribs[i++] = hardware;
+
+    // zero termination of list
     attribs[i++] = (NSOpenGLPixelFormatAttribute)0;
 
     // make sure that size of array was not exceeded
@@ -1016,9 +987,20 @@ void vtkCocoaRenderWindow::CreateGLContext()
 
     if (pixelFormat == nil)
     {
-      if (this->MultiSamples == 0)
+      if (profileVersion != NSOpenGLProfileVersion3_2Core)
+      {
+        // Try falling back to the 3.2 Core Profile
+        profileVersion = NSOpenGLProfileVersion3_2Core;
+      }
+      else if (hardware == NSOpenGLPFAAccelerated)
+      {
+        // Try falling back to the software renderer
+        hardware = 0;
+      }
+      else if (this->MultiSamples == 0)
       {
         // after trying with no multisamples, we are done
+        vtkWarningMacro(<< "No OpenGL context whatsoever could be created!");
         break;
       }
       else if (this->MultiSamples < 4)
@@ -1037,13 +1019,16 @@ void vtkCocoaRenderWindow::CreateGLContext()
     }
   }
 
-  NSOpenGLContext *context = [[NSOpenGLContext alloc]
-                              initWithFormat:pixelFormat
-                                shareContext:nil];
+  NSOpenGLContext *context = nil;
+  if (pixelFormat)
+  {
+    context = [[NSOpenGLContext alloc] initWithFormat:pixelFormat
+                                         shareContext:nil];
 
-  // This syncs the OpenGL context to the VBL to prevent tearing
-  GLint one = 1;
-  [context setValues:&one forParameter:NSOpenGLCPSwapInterval];
+    // This syncs the OpenGL context to the VBL to prevent tearing
+    GLint one = 1;
+    [context setValues:&one forParameter:NSOpenGLCPSwapInterval];
+  }
 
   this->SetPixelFormat((void*)pixelFormat);
   this->SetContextId((void*)context);
@@ -1528,7 +1513,7 @@ void vtkCocoaRenderWindow::SetCocoaManager(void *manager)
 //----------------------------------------------------------------------------
 void vtkCocoaRenderWindow::SetWindowInfo(char *info)
 {
-  // The paramater is an ASCII string of a decimal number representing
+  // The parameter is an ASCII string of a decimal number representing
   // a pointer to the window. Convert it back to a pointer.
   ptrdiff_t tmp = 0;
   if (info)
@@ -1542,7 +1527,7 @@ void vtkCocoaRenderWindow::SetWindowInfo(char *info)
 //----------------------------------------------------------------------------
 void vtkCocoaRenderWindow::SetParentInfo(char *info)
 {
-  // The paramater is an ASCII string of a decimal number representing
+  // The parameter is an ASCII string of a decimal number representing
   // a pointer to the window. Convert it back to a pointer.
   ptrdiff_t tmp = 0;
   if (info)

@@ -129,7 +129,7 @@ class VTKIOEXODUS_EXPORT vtkExodusIICache : public vtkObject
 public:
   static vtkExodusIICache* New();
   vtkTypeMacro(vtkExodusIICache,vtkObject);
-  void PrintSelf( ostream& os, vtkIndent indent ) VTK_OVERRIDE;
+  void PrintSelf( ostream& os, vtkIndent indent ) override;
 
   /// Empty the cache
   void Clear();
@@ -152,7 +152,7 @@ public:
   /// Insert an entry into the cache (this can remove other cache entries to make space).
   void Insert( vtkExodusIICacheKey& key, vtkDataArray* value );
 
-  /** Determine whether a cache entry exists. If it does, return it -- otherwise return NULL.
+  /** Determine whether a cache entry exists. If it does, return it -- otherwise return nullptr.
     * If a cache entry exists, it is marked as most recently used.
     */
   vtkDataArray*& Find( const vtkExodusIICacheKey& );
@@ -179,7 +179,7 @@ protected:
   vtkExodusIICache();
 
   /// Destructor.
-  ~vtkExodusIICache() VTK_OVERRIDE;
+  ~vtkExodusIICache() override;
 
 
   /// Avoid (some) FP problems
@@ -203,7 +203,7 @@ protected:
   vtkExodusIICacheLRU LRU;
 
 private:
-  vtkExodusIICache( const vtkExodusIICache& ) VTK_DELETE_FUNCTION;
-  void operator = ( const vtkExodusIICache& ) VTK_DELETE_FUNCTION;
+  vtkExodusIICache( const vtkExodusIICache& ) = delete;
+  void operator = ( const vtkExodusIICache& ) = delete;
 };
 #endif // vtkExodusIICache_h

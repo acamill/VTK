@@ -1,5 +1,6 @@
 vtk_add_test_cxx(${vtk-module}CxxTests tests
   NO_DATA NO_VALID NO_OUTPUT
+  LagrangeHexahedron.cxx
   TestColor.cxx
   TestVector.cxx
   TestVectorOperators.cxx
@@ -20,12 +21,15 @@ vtk_add_test_cxx(${vtk-module}CxxTests tests
   TestImageIterator.cxx
   TestInterpolationDerivs.cxx
   TestInterpolationFunctions.cxx
+  TestMappedGridDeepCopy.cxx
   TestPath.cxx
   TestPentagonalPrism.cxx
+  TestPiecewiseFunctionLogScale.cxx
   TestPixelExtent.cxx
   TestPointLocators.cxx
   TestPolyDataRemoveCell.cxx
   TestPolygon.cxx
+  TestPolygonBoundedTriangulate.cxx
   TestPolyhedron0.cxx
   TestPolyhedron1.cxx
   TestPolyhedron3.cxx
@@ -66,11 +70,14 @@ vtk_add_test_cxx(${vtk-module}CxxTests tests
   UnitTestTriangleIntersection.cxx
   )
 vtk_add_test_cxx(${vtk-module}CxxTests data_tests
+  TestLagrangeTriangle.cxx
+  TestLagrangeTetra.cxx
   quadraticIntersection.cxx
   TestCellIterators.cxx,NO_VALID,NO_OUTPUT
   TestCellLocator.cxx,NO_DATA
   TestMeanValueCoordinatesInterpolation1.cxx
   TestMeanValueCoordinatesInterpolation2.cxx
+  TestPolyhedron4.cxx,NO_VALID,NO_OUTPUT
   TestSmoothErrorMetric.cxx
   TestQuadraticPolygonFilters.cxx
   )
@@ -89,5 +96,6 @@ set(all_tests
   ${tests}
   ${data_tests}
   ${output_tests}
+  ${custom_tests}
   )
 vtk_test_cxx_executable(${vtk-module}CxxTests all_tests)

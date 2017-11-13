@@ -15,15 +15,13 @@
 
 #ifndef vtkVolumeShaderComposer_h
 #define vtkVolumeShaderComposer_h
-
-#include "vtkVolumeMask.h"
-
 #include <vtkCamera.h>
 #include <vtkOpenGLGPUVolumeRayCastMapper.h>
 #include <vtkRenderer.h>
 #include <vtkVolume.h>
 #include <vtkVolumeMapper.h>
 #include <vtkVolumeProperty.h>
+#include "vtkVolumeTexture.h"
 
 #include <map>
 #include <sstream>
@@ -37,33 +35,6 @@
 
 namespace vtkvolume
 {
-  //--------------------------------------------------------------------------
-  std::string replace(std::string source, const std::string &search,
-                      const std::string &replace, bool all)
-  {
-    if (replace.empty())
-    {
-      return source;
-    }
-
-    std::string::size_type pos = 0;
-    bool first = true;
-    while ((pos = source.find(search, 0)) != std::string::npos)
-    {
-      source.replace(pos, search.length(), replace);
-      pos += search.length();
-      if (first)
-      {
-        first = false;
-        if (!all)
-        {
-          return source;
-        }
-      }
-    }
-    return source;
-  }
-
   //--------------------------------------------------------------------------
   std::string ComputeClipPositionImplementation(vtkRenderer* vtkNotUsed(ren),
                                                 vtkVolumeMapper* vtkNotUsed(mapper),
@@ -1303,7 +1274,7 @@ namespace vtkvolume
                                     vtkVolumeMapper* mapper,
                                     vtkVolume* vtkNotUsed(vol),
                                     vtkImageData* maskInput,
-                                    vtkVolumeMask* mask, int maskType,
+                                    vtkVolumeTexture* mask, int maskType,
                                     int noOfComponents,
                                     int independentComponents = 0)
   {
@@ -2239,7 +2210,7 @@ namespace vtkvolume
                                             vtkVolumeMapper* vtkNotUsed(mapper),
                                             vtkVolume* vtkNotUsed(vol),
                                             vtkImageData* maskInput,
-                                            vtkVolumeMask* mask,
+                                            vtkVolumeTexture* mask,
                                             int vtkNotUsed(maskType))
   {
     if (!mask || !maskInput)
@@ -2257,7 +2228,7 @@ namespace vtkvolume
                                        vtkVolumeMapper* vtkNotUsed(mapper),
                                        vtkVolume* vtkNotUsed(vol),
                                        vtkImageData* maskInput,
-                                       vtkVolumeMask* mask,
+                                       vtkVolumeTexture* mask,
                                        int maskType)
   {
     if (!mask || !maskInput ||
@@ -2282,7 +2253,7 @@ namespace vtkvolume
                                                vtkVolumeMapper* vtkNotUsed(mapper),
                                                vtkVolume* vtkNotUsed(vol),
                                                vtkImageData* maskInput,
-                                               vtkVolumeMask* mask,
+                                               vtkVolumeTexture* mask,
                                                int maskType)
   {
     if (!mask || !maskInput ||
@@ -2305,7 +2276,7 @@ namespace vtkvolume
                                           vtkVolumeMapper* vtkNotUsed(mapper),
                                           vtkVolume* vtkNotUsed(vol),
                                           vtkImageData* maskInput,
-                                          vtkVolumeMask* mask,
+                                          vtkVolumeTexture* mask,
                                           int maskType,
                                           int noOfComponents)
   {
@@ -2484,6 +2455,33 @@ namespace vtkvolume
     \n  initializeRayCast();\
     \n  castRay(-1.0, -1.0);\
     \n  finalizeRayCast();");
+  }
+
+  //---------------------------------------------------------------------------
+  std::string ImageSampleDeclarationFrag(const std::vector<std::string>& varNames,
+    const size_t usedNames)
+  {
+    std::string shader = "\n";
+    for (size_t i = 0; i < usedNames; i++)
+    {
+      shader += "uniform sampler2D " + varNames[i] + ";\n";
+    }
+    return shader;
+  }
+
+  //---------------------------------------------------------------------------
+  std::string ImageSampleImplementationFrag(const std::vector<std::string>& varNames,
+    const size_t usedNames)
+  {
+    std::string shader = "\n";
+    for (size_t i = 0; i < usedNames; i++)
+    {
+      std::stringstream ss;  ss << i;
+      shader += " gl_FragData[" + ss.str() + "] = texture2D("+ varNames[i] +
+        ", texCoord);\n";
+    }
+    shader += " return;\n";
+    return shader;
   }
 }
 

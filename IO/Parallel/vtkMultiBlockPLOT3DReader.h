@@ -99,12 +99,49 @@ class vtkStructuredGrid;
 class vtkUnsignedCharArray;
 struct vtkMultiBlockPLOT3DReaderInternals;
 
+namespace Functors
+{
+  class ComputeFunctor;
+  class ComputeTemperatureFunctor;
+  class ComputePressureFunctor;
+  class ComputePressureCoefficientFunctor;
+  class ComputeMachNumberFunctor;
+  class ComputeSoundSpeedFunctor;
+  class ComputeEnthalpyFunctor;
+  class ComputeKinecticEnergyFunctor;
+  class ComputeVelocityMagnitudeFunctor;
+  class ComputeEntropyFunctor;
+  class ComputeSwirlFunctor;
+  class ComputeVelocityFunctor;
+  class ComputeVorticityMagnitudeFunctor;
+  class ComputePressureGradientFunctor;
+  class ComputeVorticityFunctor;
+  class ComputeStrainRateFunctor;
+}
+
+
 class VTKIOPARALLEL_EXPORT vtkMultiBlockPLOT3DReader : public vtkMultiBlockDataSetAlgorithm
 {
+friend class Functors::ComputeFunctor;
+friend class Functors::ComputeTemperatureFunctor;
+friend class Functors::ComputePressureFunctor;
+friend class Functors::ComputePressureCoefficientFunctor;
+friend class Functors::ComputeMachNumberFunctor;
+friend class Functors::ComputeSoundSpeedFunctor;
+friend class Functors::ComputeEnthalpyFunctor;
+friend class Functors::ComputeKinecticEnergyFunctor;
+friend class Functors::ComputeVelocityMagnitudeFunctor;
+friend class Functors::ComputeEntropyFunctor;
+friend class Functors::ComputeSwirlFunctor;
+friend class Functors::ComputeVelocityFunctor;
+friend class Functors::ComputeVorticityMagnitudeFunctor;
+friend class Functors::ComputePressureGradientFunctor;
+friend class Functors::ComputeVorticityFunctor;
+friend class Functors::ComputeStrainRateFunctor;
 public:
   static vtkMultiBlockPLOT3DReader *New();
   vtkTypeMacro(vtkMultiBlockPLOT3DReader,vtkMultiBlockDataSetAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   //@{
   /**
@@ -322,7 +359,7 @@ public:
 
 protected:
   vtkMultiBlockPLOT3DReader();
-  ~vtkMultiBlockPLOT3DReader() VTK_OVERRIDE;
+  ~vtkMultiBlockPLOT3DReader() override;
 
   vtkDataArray* CreateFloatArray();
 
@@ -439,22 +476,22 @@ protected:
   int ScalarFunctionNumber;
   int VectorFunctionNumber;
 
-  int FillOutputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
 
   int RequestData(vtkInformation*,
                           vtkInformationVector**,
-                          vtkInformationVector*) VTK_OVERRIDE;
+                          vtkInformationVector*) override;
   int RequestInformation(vtkInformation*,
                                  vtkInformationVector**,
-                                 vtkInformationVector*) VTK_OVERRIDE;
+                                 vtkInformationVector*) override;
 
   vtkMultiBlockPLOT3DReaderInternals* Internal;
 
   vtkMultiProcessController *Controller;
 
 private:
-  vtkMultiBlockPLOT3DReader(const vtkMultiBlockPLOT3DReader&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkMultiBlockPLOT3DReader&) VTK_DELETE_FUNCTION;
+  vtkMultiBlockPLOT3DReader(const vtkMultiBlockPLOT3DReader&) = delete;
+  void operator=(const vtkMultiBlockPLOT3DReader&) = delete;
 
   // Key used to flag intermediate results.
   static vtkInformationIntegerKey* INTERMEDIATE_RESULT();

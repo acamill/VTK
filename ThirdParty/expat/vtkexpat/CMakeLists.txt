@@ -6,21 +6,51 @@ project(expat)
 cmake_minimum_required(VERSION 2.6)
 set(PACKAGE_BUGREPORT "expat-bugs@libexpat.org")
 set(PACKAGE_NAME "expat")
-set(PACKAGE_VERSION "2.2.0")
+set(PACKAGE_VERSION "2.2.5")
 set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_TARNAME "${PACKAGE_NAME}")
 
 if (FALSE) # XXX(kitware): Force build settings.
-option(BUILD_tools "build the xmlwf tool for expat library" ON)
+if(WINCE)
+    set(BUILD_tools_default OFF)
+else()
+    set(BUILD_tools_default ON)
+endif()
+if(MSVC OR NOT BUILD_tools_default)
+    set(BUILD_doc_default OFF)
+else()
+    find_program(DOCBOOK_TO_MAN NAMES docbook2x-man docbook2man docbook-to-man)
+    if(DOCBOOK_TO_MAN)
+        set(BUILD_doc_default ON)
+    else()
+        set(BUILD_doc_default OFF)
+    endif()
+endif()
+
+option(BUILD_tools "build the xmlwf tool for expat library" ${BUILD_tools_default})
 option(BUILD_examples "build the examples for expat library" ON)
 option(BUILD_tests "build the tests for expat library" ON)
 option(BUILD_shared "build a shared expat library" ON)
+option(BUILD_doc "build man page for xmlwf" ${BUILD_doc_default})
+option(USE_libbsd "utilize libbsd (for arc4random_buf)" OFF)
+option(INSTALL "install expat files in cmake install target" ON)
 else ()
 set(BUILD_tools OFF)
 set(BUILD_examples OFF)
 set(BUILD_tests OFF)
 set(BUILD_shared ${BUILD_SHARED_LIBS})
+set(BUILD_doc OFF)
+set(INSTALL OFF)
 endif ()
+
+if(USE_libbsd)
+    find_library(LIB_BSD NAMES bsd)
+    if(NOT LIB_BSD)
+        message(FATAL_ERROR "USE_libbsd option is enabled, but libbsd was not found")
+    else()
+        set(HAVE_LIBBSD TRUE)
+    endif()
+endif()
 
 # configuration options
 if (FALSE) # XXX(kitware): Force configuration values.
@@ -32,6 +62,16 @@ set(XML_CONTEXT_BYTES 1024)
 set(XML_DTD ON)
 set(XML_NS ON)
 endif ()
+if(NOT WIN32)
+    if (FALSE) # XXX(kitware): Force configuration values.
+    option(XML_DEV_URANDOM "Define to include code reading entropy from `/dev/urandom'." ON)
+    else ()
+    set(XML_DEV_URANDOM ON)
+    endif ()
+    if(XML_DEV_URANDOM)
+        add_definitions(-DXML_DEV_URANDOM)
+    endif()
+endif()
 
 if(XML_DTD)
     set(XML_DTD 1)
@@ -50,23 +90,32 @@ endif(BUILD_tests)
 
 include(${CMAKE_CURRENT_LIST_DIR}/ConfigureChecks.cmake)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/lib)
+if (FALSE) # XXX(kitware): This flag only works on GCC alikes. Upstream should address this.
+set(EXTRA_COMPILE_FLAGS)
+if(FLAG_NO_STRICT_ALIASING)
+    set(EXTRA_COMPILE_FLAGS "${EXTRA_COMPILE_FLAGS} -fno-strict-aliasing")
+endif()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EXTRA_COMPILE_FLAGS}")
+endif ()
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 if (FALSE) # XXX(kitware): Settings handled by VTK.
 if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -wd4996)
 endif(MSVC)
 if(WIN32)
-    add_definitions(-DWIN32)
     set(CMAKE_DEBUG_POSTFIX "d" CACHE STRING "Add a suffix, usually d on Windows")
 endif(WIN32)
 endif ()
 
 set(expat_SRCS
+    lib/loadlibrary.c
     lib/xmlparse.c
     lib/xmlrole.c
-    lib/xmltok.c 
-    lib/xmltok_impl.c 
+    lib/xmltok.c
+    lib/xmltok_impl.c
     lib/xmltok_ns.c
 )
 
@@ -86,9 +135,12 @@ endif(BUILD_shared)
 
 if (FALSE) # XXX(kitware): Use VTK's build macros.
 add_library(expat ${_SHARED} ${expat_SRCS})
+if(USE_libbsd)
+    target_link_libraries(expat ${LIB_BSD})
+endif()
 
 set(LIBCURRENT 7)   # sync
-set(LIBREVISION 2)  # with
+set(LIBREVISION 7)  # with
 set(LIBAGE 6)       # configure.ac!
 math(EXPR LIBCURRENT_MINUS_AGE "${LIBCURRENT} - ${LIBAGE}")
 
@@ -98,7 +150,13 @@ if(NOT WIN32)
     set_property(TARGET expat PROPERTY NO_SONAME ${NO_SONAME})
 endif(NOT WIN32)
 
-install(TARGETS expat RUNTIME DESTINATION bin
+macro(expat_install)
+    if(INSTALL)
+        install(${ARGN})
+    endif()
+endmacro()
+
+expat_install(TARGETS expat RUNTIME DESTINATION bin
                       LIBRARY DESTINATION lib
                       ARCHIVE DESTINATION lib)
 else ()
@@ -132,16 +190,12 @@ set(libdir "\${prefix}/lib")
 set(includedir "\${prefix}/include")
 configure_file(expat.pc.in ${CMAKE_CURRENT_BINARY_DIR}/expat.pc)
 
-install(FILES lib/expat.h lib/expat_external.h DESTINATION include)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/expat.pc DESTINATION lib/pkgconfig)
+expat_install(FILES lib/expat.h lib/expat_external.h DESTINATION include)
+expat_install(FILES ${CMAKE_CURRENT_BINARY_DIR}/expat.pc DESTINATION lib/pkgconfig)
 endif ()
 
 
-if (FALSE) # XXX(kitware): No xmlwf support in VTK.
-add_custom_command(TARGET expat PRE_BUILD COMMAND $(MAKE) -C doc xmlwf.1)
-endif ()
-
-if(BUILD_tools AND NOT WINCE)
+if(BUILD_tools)
     set(xmlwf_SRCS
         xmlwf/xmlwf.c
         xmlwf/xmlfile.c
@@ -152,9 +206,12 @@ if(BUILD_tools AND NOT WINCE)
     add_executable(xmlwf ${xmlwf_SRCS})
     set_property(TARGET xmlwf PROPERTY RUNTIME_OUTPUT_DIRECTORY xmlwf)
     target_link_libraries(xmlwf expat)
-    install(TARGETS xmlwf DESTINATION bin)
-    install(FILES doc/xmlwf.1 DESTINATION share/man/man1)
-endif(BUILD_tools AND NOT WINCE)
+    expat_install(TARGETS xmlwf DESTINATION bin)
+    if(BUILD_doc)
+        add_custom_command(TARGET expat PRE_BUILD COMMAND "${DOCBOOK_TO_MAN}" "${PROJECT_SOURCE_DIR}/doc/xmlwf.xml" && mv "XMLWF.1" "${PROJECT_SOURCE_DIR}/doc/xmlwf.1")
+        expat_install(FILES "${PROJECT_SOURCE_DIR}/doc/xmlwf.1" DESTINATION share/man/man1)
+    endif()
+endif()
 
 if(BUILD_examples)
     add_executable(elements examples/elements.c)
@@ -168,12 +225,12 @@ endif(BUILD_examples)
 
 if(BUILD_tests)
     ## these are unittests that can be run on any platform
-    add_executable(runtests tests/runtests.c tests/chardata.c tests/minicheck.c)
+    add_executable(runtests tests/runtests.c tests/chardata.c tests/structdata.c tests/minicheck.c tests/memcheck.c)
     set_property(TARGET runtests PROPERTY RUNTIME_OUTPUT_DIRECTORY tests)
     target_link_libraries(runtests expat)
     add_test(runtests tests/runtests)
 
-    add_executable(runtestspp tests/runtestspp.cpp tests/chardata.c tests/minicheck.c)
+    add_executable(runtestspp tests/runtestspp.cpp tests/chardata.c tests/structdata.c tests/minicheck.c tests/memcheck.c)
     set_property(TARGET runtestspp PROPERTY RUNTIME_OUTPUT_DIRECTORY tests)
     target_link_libraries(runtestspp expat)
     add_test(runtestspp tests/runtestspp)

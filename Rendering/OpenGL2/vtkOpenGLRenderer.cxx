@@ -48,10 +48,13 @@ PURPOSE.  See the above copyright notice for more information.
 #include "vtkUnsignedCharArray.h"
 #include "vtkVolumetricPass.h"
 
+#include <vtksys/RegularExpression.hxx>
+
 #include <cmath>
 #include <cassert>
 #include <cstdlib>
 #include <list>
+#include <sstream>
 #include <string>
 
 class vtkGLPickInfo
@@ -72,12 +75,12 @@ vtkOpenGLRenderer::vtkOpenGLRenderer()
   this->PickInfo->NumPicked = 0;
   this->PickedZ = 0;
 
-  this->FXAAFilter = 0;
-  this->DepthPeelingPass = 0;
-  this->ShadowMapPass = 0;
+  this->FXAAFilter = nullptr;
+  this->DepthPeelingPass = nullptr;
+  this->ShadowMapPass = nullptr;
   this->DepthPeelingHigherLayer=0;
 
-  this->BackgroundTexture = 0;
+  this->BackgroundTexture = nullptr;
   this->HaveApplePrimitiveIdBugValue = false;
   this->HaveApplePrimitiveIdBugChecked = false;
 }
@@ -145,11 +148,11 @@ void vtkOpenGLRenderer::DeviceRender(void)
 {
   vtkTimerLog::MarkStartEvent("OpenGL Dev Render");
 
-  if(this->Pass!=0)
+  if(this->Pass!=nullptr)
   {
     vtkRenderState s(this);
     s.SetPropArrayAndCount(this->PropArray, this->PropArrayCount);
-    s.SetFrameBuffer(0);
+    s.SetFrameBuffer(nullptr);
     this->Pass->Render(&s);
   }
   else
@@ -305,7 +308,7 @@ void vtkOpenGLRenderer::DeviceRenderOpaqueGeometry()
     vtkNew<vtkHiddenLineRemovalPass> hlrPass;
     vtkRenderState s(this);
     s.SetPropArrayAndCount(this->PropArray, this->PropArrayCount);
-    s.SetFrameBuffer(0);
+    s.SetFrameBuffer(nullptr);
     hlrPass->Render(&s);
     this->NumberOfPropsRendered += hlrPass->GetNumberOfRenderedProps();
   }
@@ -389,7 +392,7 @@ void vtkOpenGLRenderer::DeviceRenderTranslucentPolygonalGeometry()
             this->DepthPeelingPass);
       if (ddpp)
       {
-        ddpp->SetVolumetricPass(NULL);
+        ddpp->SetVolumetricPass(nullptr);
       }
     }
 
@@ -397,7 +400,7 @@ void vtkOpenGLRenderer::DeviceRenderTranslucentPolygonalGeometry()
     this->DepthPeelingPass->SetOcclusionRatio(this->OcclusionRatio);
     vtkRenderState s(this);
     s.SetPropArrayAndCount(this->PropArray, this->PropArrayCount);
-    s.SetFrameBuffer(0);
+    s.SetFrameBuffer(nullptr);
     this->LastRenderingUsedDepthPeeling=1;
     this->DepthPeelingPass->Render(&s);
     this->NumberOfPropsRendered += this->DepthPeelingPass->GetNumberOfRenderedProps();
@@ -475,7 +478,7 @@ void vtkOpenGLRenderer::Clear(void)
     points->SetPoint(1, size[0], 0, 0);
     points->SetPoint(2, size[0], size[1], 0);
     points->SetPoint(3, 0, size[1], 0);
-    polydata->SetPoints(points.Get());
+    polydata->SetPoints(points);
 
     vtkNew<vtkCellArray> tris;
     tris->InsertNextCell(3);
@@ -486,14 +489,14 @@ void vtkOpenGLRenderer::Clear(void)
     tris->InsertCellPoint(0);
     tris->InsertCellPoint(2);
     tris->InsertCellPoint(3);
-    polydata->SetPolys(tris.Get());
+    polydata->SetPolys(tris);
 
     vtkNew<vtkTrivialProducer> prod;
-    prod->SetOutput(polydata.Get());
+    prod->SetOutput(polydata);
 
     // Set some properties.
     mapper->SetInputConnection(prod->GetOutputPort());
-    actor->SetMapper(mapper.Get());
+    actor->SetMapper(mapper);
 
     if(this->TexturedBackground && this->BackgroundTexture)
     {
@@ -513,7 +516,7 @@ void vtkOpenGLRenderer::Clear(void)
       tcoords->SetTuple(2,tmp);
       tmp[0] = 0.0;
       tcoords->SetTuple(3,tmp);
-      polydata->GetPointData()->SetTCoords(tcoords.Get());
+      polydata->GetPointData()->SetTCoords(tcoords);
     }
     else // gradient
     {
@@ -532,7 +535,7 @@ void vtkOpenGLRenderer::Clear(void)
       tmp[2] = this->Background2[2]*255;
       colors->SetTuple(2,tmp);
       colors->SetTuple(3,tmp);
-      polydata->GetPointData()->SetScalars(colors.Get());
+      polydata->GetPointData()->SetScalars(colors);
     }
 
     glDisable(GL_DEPTH_TEST);
@@ -561,7 +564,7 @@ void vtkOpenGLRenderer::StartPick(unsigned int vtkNotUsed(pickFromSize))
   glGenTextures(1, &this->PickInfo->PickingTexture);
   glBindTexture(GL_TEXTURE_2D, this->PickInfo->PickingTexture);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32UI, size[0], size[1],
-              0, GL_RGB_INTEGER, GL_UNSIGNED_INT, NULL);
+              0, GL_RGB_INTEGER, GL_UNSIGNED_INT, nullptr);
   glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
               this->PickInfo->PickingTexture, 0);
 
@@ -569,7 +572,7 @@ void vtkOpenGLRenderer::StartPick(unsigned int vtkNotUsed(pickFromSize))
   glGenTextures(1, &this->PickInfo->DepthTexture);
   glBindTexture(GL_TEXTURE_2D, this->PickInfo->DepthTexture);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, size[0], size[1],
-              0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+              0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
   glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
               this->PickInfo->DepthTexture, 0);
 
@@ -600,6 +603,7 @@ void vtkOpenGLRenderer::StartPick(unsigned int vtkNotUsed(pickFromSize))
   this->PickInfo->NumPicked = 0;
   this->PickInfo->PickedId = 0;
 
+  this->UpdateCamera();
   this->Clear();
 
   vtkOpenGLCheckErrorMacro("failed after StartPick");
@@ -716,6 +720,9 @@ void vtkOpenGLRenderer::DonePick()
       }
     }
 
+    delete [] pixBuffer;
+    delete [] depthBuffer;
+
     this->PickInfo->NumPicked = (unsigned int)this->PickInfo->PickValues.size();
 
     this->PickInfo->PickedId = 0;
@@ -753,28 +760,28 @@ vtkOpenGLRenderer::~vtkOpenGLRenderer()
 {
   delete this->PickInfo;
 
-  if(this->Pass != NULL)
+  if(this->Pass != nullptr)
   {
     this->Pass->UnRegister(this);
-    this->Pass = NULL;
+    this->Pass = nullptr;
   }
 
   if (this->FXAAFilter)
   {
     this->FXAAFilter->Delete();
-    this->FXAAFilter = 0;
+    this->FXAAFilter = nullptr;
   }
 
   if (this->ShadowMapPass)
   {
     this->ShadowMapPass->Delete();
-    this->ShadowMapPass = 0;
+    this->ShadowMapPass = nullptr;
   }
 
   if (this->DepthPeelingPass)
   {
     this->DepthPeelingPass->Delete();
-    this->DepthPeelingPass = 0;
+    this->DepthPeelingPass = nullptr;
   }
 }
 
@@ -905,23 +912,44 @@ bool vtkOpenGLRenderer::IsDualDepthPeelingSupported()
   // from functioning properly, something in the texture sampler is causing
   // all lookups to return NaN. See discussion on
   // https://bugs.freedesktop.org/show_bug.cgi?id=94955
-  // We'll always fallback to regular depth peeling until this is fixed.
-  // Only disable for mesa + llvmpipe/SWR, since those are the drivers that
-  // seem to be affected by this.
+  // This has been fixed in Mesa 17.2.
   const char *glVersionC =
       reinterpret_cast<const char *>(glGetString(GL_VERSION));
   std::string glVersion = std::string(glVersionC ? glVersionC : "");
-  if (glVersion.find("Mesa") != std::string::npos)
+  if (dualDepthPeelingSupported &&
+      glVersion.find("Mesa") != std::string::npos)
   {
-    const char *glRendererC =
-        reinterpret_cast<const char *>(glGetString(GL_RENDERER));
-    std::string glRenderer = std::string(glRendererC ? glRendererC : "");
-    if (glRenderer.find("llvmpipe") != std::string::npos ||
-        glRenderer.find("SWR") != std::string::npos)
+    bool mesaCompat = false;
+    // The bug has been fixed with mesa 17.2.0. The version string is approx:
+    // 3.3 (Core Profile) Mesa 17.2.0-devel (git-08cb8cf256)
+    vtksys::RegularExpression re("Mesa ([0-9]+)\\.([0-9]+)\\.");
+    if (re.find(glVersion))
+    {
+      int majorVersion;
+      std::string majorStr = re.match(1);
+      std::istringstream majorParse(majorStr);
+      majorParse >> majorVersion;
+      if (majorVersion > 17)
+      {
+        mesaCompat = true;
+      }
+      else if (majorVersion == 17)
+      {
+        int minorVersion;
+        std::string minorStr = re.match(2);
+        std::istringstream minorParse(minorStr);
+        minorParse >> minorVersion;
+        if (minorVersion >= 2)
+        {
+          mesaCompat = true;
+        }
+      }
+    }
+
+    if (!mesaCompat)
     {
       vtkDebugMacro("Disabling dual depth peeling -- mesa bug detected. "
-                    "GL_VERSION = '" << glVersion << "'; "
-                    "GL_RENDERER = '" << glRenderer << "'.");
+                    "GL_VERSION = '" << glVersion << "'.");
       dualDepthPeelingSupported = false;
     }
   }

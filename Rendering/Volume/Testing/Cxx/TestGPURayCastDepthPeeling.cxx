@@ -14,6 +14,9 @@
 =========================================================================*/
 /**
  *  Tests depth peeling pass with volume rendering.
+ *
+ *  Adjusts the mapper's ImageSampleDistance during interaction.
+ *
  */
 
 #include <vtkCallbackCommand.h>
@@ -47,6 +50,7 @@
 
 #include <cassert>
 
+
 namespace {
 
 void RenderComplete(vtkObject *obj, unsigned long, void*, void*)
@@ -65,18 +69,50 @@ void RenderComplete(vtkObject *obj, unsigned long, void*, void*)
 
 } // end anon namespace
 
+class SamplingDistanceCallback : public vtkCommand
+{
+public:
+  static SamplingDistanceCallback *New()
+    { return new SamplingDistanceCallback; }
+
+  virtual void Execute(vtkObject* vtkNotUsed(caller), unsigned long event,
+    void* vtkNotUsed(data))
+  {
+    switch (event)
+    {
+      case vtkCommand::StartInteractionEvent:
+        {
+          // Higher ImageSampleDistance to make the volume-rendered image's
+          // resolution visibly lower during interaction.
+          this->Mapper->SetImageSampleDistance(6.5);
+        }
+        break;
+
+      case vtkCommand::EndInteractionEvent:
+        {
+          // Default ImageSampleDistance
+          this->Mapper->SetImageSampleDistance(1.0);
+        }
+    }
+  }
+
+  vtkGPUVolumeRayCastMapper* Mapper = nullptr;
+};
+
+
+
 int TestGPURayCastDepthPeeling(int argc, char *argv[])
 {
   // Volume peeling is only supported through the dual depth peeling algorithm.
   // If the current system only supports the legacy peeler, skip this test:
   vtkNew<vtkRenderWindow> renWin;
   vtkNew<vtkRenderWindowInteractor> iren;
-  iren->SetRenderWindow(renWin.GetPointer());
+  iren->SetRenderWindow(renWin);
 
   vtkNew<vtkRenderer> ren;
   renWin->Render(); // Create the context
-  renWin->AddRenderer(ren.GetPointer());
-  vtkOpenGLRenderer *oglRen = vtkOpenGLRenderer::SafeDownCast(ren.Get());
+  renWin->AddRenderer(ren);
+  vtkOpenGLRenderer *oglRen = vtkOpenGLRenderer::SafeDownCast(ren);
   assert(oglRen); // This test should only be enabled for OGL2 backend.
   // This will print details about why depth peeling is unsupported:
   oglRen->SetDebug(1);
@@ -92,7 +128,7 @@ int TestGPURayCastDepthPeeling(int argc, char *argv[])
   vtkNew<vtkCallbackCommand> renderCompleteCB;
   renderCompleteCB->SetCallback(RenderComplete);
   renWin->GetRenderTimer()->LoggingEnabledOn();
-  renWin->AddObserver(vtkCommand::EndEvent, renderCompleteCB.Get());
+  renWin->AddObserver(vtkCommand::EndEvent, renderCompleteCB);
 
 
   double scalarRange[2];
@@ -112,7 +148,7 @@ int TestGPURayCastDepthPeeling(int argc, char *argv[])
   vtkNew<vtkOutlineFilter> outlineFilter;
   outlineFilter->SetInputConnection(reader->GetOutputPort());
   outlineMapper->SetInputConnection(outlineFilter->GetOutputPort());
-  outlineActor->SetMapper(outlineMapper.GetPointer());
+  outlineActor->SetMapper(outlineMapper);
 
   volumeMapper->GetInput()->GetScalarRange(scalarRange);
   volumeMapper->SetSampleDistance(0.1);
@@ -130,7 +166,7 @@ int TestGPURayCastDepthPeeling(int argc, char *argv[])
   vtkNew<vtkVolumeProperty> volumeProperty;
   volumeProperty->ShadeOn();
   volumeProperty->SetInterpolationType(VTK_LINEAR_INTERPOLATION);
-  volumeProperty->SetScalarOpacity(scalarOpacity.GetPointer());
+  volumeProperty->SetScalarOpacity(scalarOpacity);
 
   vtkSmartPointer<vtkColorTransferFunction> colorTransferFunction =
     volumeProperty->GetRGBTransferFunction(0);
@@ -138,8 +174,8 @@ int TestGPURayCastDepthPeeling(int argc, char *argv[])
   colorTransferFunction->AddRGBPoint(scalarRange[0], 0.6, 0.6, 0.6);
 
   vtkSmartPointer<vtkVolume> volume = vtkSmartPointer<vtkVolume>::New();
-  volume->SetMapper(volumeMapper.GetPointer());
-  volume->SetProperty(volumeProperty.GetPointer());
+  volume->SetMapper(volumeMapper);
+  volume->SetProperty(volumeProperty);
 
   int dims[3];
   double spacing[3], center[3], origin[3];
@@ -163,7 +199,7 @@ int TestGPURayCastDepthPeeling(int argc, char *argv[])
   sphereProperty->SetOpacity(0.3);
   vtkNew<vtkPolyDataMapper> sphereMapper;
   sphereMapper->SetInputConnection(sphereSource->GetOutputPort());
-  sphereActor->SetMapper(sphereMapper.GetPointer());
+  sphereActor->SetMapper(sphereMapper);
 
   // Add sphere 2
   center[0] += 15.0;
@@ -179,13 +215,13 @@ int TestGPURayCastDepthPeeling(int argc, char *argv[])
   sphereProperty->SetOpacity(0.3);
   vtkNew<vtkPolyDataMapper> sphereMapper2;
   sphereMapper2->SetInputConnection(sphereSource2->GetOutputPort());
-  sphereActor2->SetMapper(sphereMapper2.GetPointer());
+  sphereActor2->SetMapper(sphereMapper2);
 
   // Add actors
-  ren->AddVolume(volume.GetPointer());
-  ren->AddActor(outlineActor.GetPointer());
-  ren->AddActor(sphereActor.GetPointer());
-  ren->AddActor(sphereActor2.GetPointer());
+  ren->AddVolume(volume);
+  ren->AddActor(outlineActor);
+  ren->AddActor(sphereActor);
+  ren->AddActor(sphereActor2);
 
   // Configure depth peeling
   ren->SetUseDepthPeeling(1);
@@ -194,7 +230,12 @@ int TestGPURayCastDepthPeeling(int argc, char *argv[])
   ren->SetUseDepthPeelingForVolumes(true);
 
   vtkNew<vtkInteractorStyleTrackballCamera> style;
-  renWin->GetInteractor()->SetInteractorStyle(style.GetPointer());
+  renWin->GetInteractor()->SetInteractorStyle(style);
+
+  vtkNew<SamplingDistanceCallback> callback;
+  callback->Mapper = volumeMapper;
+  style->AddObserver(vtkCommand::StartInteractionEvent, callback);
+  style->AddObserver(vtkCommand::EndInteractionEvent, callback);
 
   ren->ResetCamera();
   ren->GetActiveCamera()->Azimuth(-55);
@@ -204,7 +245,7 @@ int TestGPURayCastDepthPeeling(int argc, char *argv[])
 
   iren->Initialize();
 
-  int retVal = vtkRegressionTestImage( renWin.GetPointer() );
+  int retVal = vtkRegressionTestImage( renWin );
   if( retVal == vtkRegressionTester::DO_INTERACTOR)
     {
     iren->Start();

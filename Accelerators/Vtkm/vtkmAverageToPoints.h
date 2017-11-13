@@ -13,7 +13,6 @@
 //  the U.S. Government retains certain rights in this software.
 //
 //=============================================================================
-
 /**
  * @class   vtkmAverageToPoints
  * @brief   Accelerated cell to point interpolation filter.
@@ -25,7 +24,6 @@
  * pass through any existing point and cell arrays.
  *
 */
-
 #ifndef vtkmAverageToPoints_h
 #define vtkmAverageToPoints_h
 
@@ -36,7 +34,7 @@ class VTKACCELERATORSVTKM_EXPORT vtkmAverageToPoints : public vtkDataSetAlgorith
 {
 public:
   vtkTypeMacro(vtkmAverageToPoints,vtkDataSetAlgorithm)
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   static vtkmAverageToPoints* New();
 
 protected:
@@ -45,11 +43,11 @@ protected:
 
   virtual int RequestData(vtkInformation *,
                           vtkInformationVector **,
-                          vtkInformationVector *) VTK_OVERRIDE;
+                          vtkInformationVector *) override;
 
 private:
-  vtkmAverageToPoints(const vtkmAverageToPoints&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkmAverageToPoints&) VTK_DELETE_FUNCTION;
+  vtkmAverageToPoints(const vtkmAverageToPoints&) = delete;
+  void operator=(const vtkmAverageToPoints&) = delete;
 };
 
 #endif // vtkmAverageToPoints_h

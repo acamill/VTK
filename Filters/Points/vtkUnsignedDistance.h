@@ -83,7 +83,7 @@ public:
    */
   static vtkUnsignedDistance *New();
   vtkTypeMacro(vtkUnsignedDistance,vtkImageAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   //@}
 
   //@{
@@ -199,10 +199,10 @@ public:
    */
   void EndAppend();
 
-  // See the vtkAlgorithm for a desciption of what these do
+  // See the vtkAlgorithm for a description of what these do
   int ProcessRequest(vtkInformation*,
                      vtkInformationVector**,
-                     vtkInformationVector*) VTK_OVERRIDE;
+                     vtkInformationVector*) override;
 
 protected:
   vtkUnsignedDistance();
@@ -221,16 +221,16 @@ protected:
   // Flag tracks whether process needs initialization
   int Initialized;
 
-  virtual int RequestInformation (vtkInformation *,
-                                  vtkInformationVector **,
-                                  vtkInformationVector *) VTK_OVERRIDE;
-  virtual int RequestData (vtkInformation *,
-                           vtkInformationVector **, vtkInformationVector *) VTK_OVERRIDE;
-  virtual int FillInputPortInformation(int, vtkInformation*) VTK_OVERRIDE;
+  int RequestInformation (vtkInformation *,
+                          vtkInformationVector **,
+                          vtkInformationVector *) override;
+  int RequestData (vtkInformation *,
+                   vtkInformationVector **, vtkInformationVector *) override;
+  int FillInputPortInformation(int, vtkInformation*) override;
 
 private:
-  vtkUnsignedDistance(const vtkUnsignedDistance&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkUnsignedDistance&) VTK_DELETE_FUNCTION;
+  vtkUnsignedDistance(const vtkUnsignedDistance&) = delete;
+  void operator=(const vtkUnsignedDistance&) = delete;
 
 };
 

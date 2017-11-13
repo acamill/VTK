@@ -109,7 +109,7 @@ int vtkBiomTableReader::RequestData(
 
   vtkDebugMacro(<<"Reading biom table...");
 
-  if(this->GetFileName() == NULL || strcmp(this->GetFileName(), "") == 0)
+  if(this->GetFileName() == nullptr || strcmp(this->GetFileName(), "") == 0)
   {
     vtkErrorMacro(<<"Input filename not set");
     return 1;
@@ -134,7 +134,7 @@ int vtkBiomTableReader::RequestData(
 
   vtkNew<vtkStringArray> rowNames;
   rowNames->SetName("name");
-  this->GetOutput()->AddColumn(rowNames.GetPointer());
+  this->GetOutput()->AddColumn(rowNames);
   for ( int i = 1; i < this->NumberOfColumns + 1; ++i )
   {
     switch(this->DataType)
@@ -142,19 +142,19 @@ int vtkBiomTableReader::RequestData(
       case VTK_INT:
       {
         vtkNew<vtkIntArray> intCol;
-        this->GetOutput()->AddColumn(intCol.GetPointer());
+        this->GetOutput()->AddColumn(intCol);
         break;
       }
       case VTK_FLOAT:
       {
         vtkNew<vtkFloatArray> floatCol;
-        this->GetOutput()->AddColumn(floatCol.GetPointer());
+        this->GetOutput()->AddColumn(floatCol);
         break;
       }
       case VTK_STRING:
       {
         vtkNew<vtkStringArray> stringCol;
-        this->GetOutput()->AddColumn(stringCol.GetPointer());
+        this->GetOutput()->AddColumn(stringCol);
         break;
       }
       default:

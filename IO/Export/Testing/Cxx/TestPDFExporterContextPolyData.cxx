@@ -41,6 +41,7 @@
 #include "vtkTestingInteractor.h"
 #include "vtkXMLPolyDataReader.h"
 
+namespace {
 
 //------------------------------------------------------------------------------
 vtkSmartPointer<vtkXMLPolyDataReader> ReadUVCDATPolyData(int argc, char* argv[])
@@ -154,6 +155,8 @@ vtkSmartPointer<vtkPolyDataItem> CreateContourItem(int argc, char* argv[])
   return polyItem;
 }
 
+} // end anon namespace
+
 /**
  * Tests vtkPolyDataItem and shows its usage with an example. vtkPolyDataItem
  * renders vtkPolyData primitives into a vtkContextScene directly (without the
@@ -200,7 +203,7 @@ int TestPDFExporterContextPolyData( int argc, char * argv [] )
 
   // Turn off the color buffer
   view->GetScene()->SetUseBufferId(false);
-  view->GetScene()->AddItem(area.GetPointer());
+  view->GetScene()->AddItem(area);
   view->Render();
 
   std::string filename =

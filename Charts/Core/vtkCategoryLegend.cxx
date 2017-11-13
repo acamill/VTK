@@ -31,8 +31,8 @@ vtkCategoryLegend::vtkCategoryLegend()
   this->SetHorizontalAlignment(vtkChartLegend::RIGHT);
   this->SetVerticalAlignment(vtkChartLegend::BOTTOM);
 
-  this->ScalarsToColors = NULL;
-  this->Values = NULL;
+  this->ScalarsToColors = nullptr;
+  this->Values = nullptr;
 
   this->TitleProperties->SetColor(this->LabelProperties->GetColor());
   this->TitleProperties->SetFontSize(this->LabelProperties->GetFontSize());
@@ -54,14 +54,14 @@ vtkCategoryLegend::~vtkCategoryLegend()
 //-----------------------------------------------------------------------------
 bool vtkCategoryLegend::Paint(vtkContext2D* painter)
 {
-  if (!this->Visible || this->ScalarsToColors == NULL || this->Values == NULL)
+  if (!this->Visible || this->ScalarsToColors == nullptr || this->Values == nullptr)
   {
     return true;
   }
 
   // Draw a box around the legend.
-  painter->ApplyPen(this->Pen.GetPointer());
-  painter->ApplyBrush(this->Brush.GetPointer());
+  painter->ApplyPen(this->Pen);
+  painter->ApplyBrush(this->Brush);
   this->GetBoundingRect(painter);
   painter->DrawRect(this->Rect.GetX(), this->Rect.GetY(),
                     this->Rect.GetWidth(), this->Rect.GetHeight());
@@ -71,7 +71,7 @@ bool vtkCategoryLegend::Paint(vtkContext2D* painter)
   float titleHeight = 0.0;
   if (!this->Title.empty())
   {
-    painter->ApplyTextProp(this->TitleProperties.GetPointer());
+    painter->ApplyTextProp(this->TitleProperties);
     painter->ComputeStringBounds(this->Title, stringBounds->GetData());
     titleHeight = stringBounds[1].GetY() + this->Padding;
 
@@ -80,7 +80,7 @@ bool vtkCategoryLegend::Paint(vtkContext2D* painter)
     painter->DrawString(x, y, this->Title);
   }
 
-  painter->ApplyTextProp(this->LabelProperties.GetPointer());
+  painter->ApplyTextProp(this->LabelProperties);
 
   // compute the height of a sample string.
   // The height of this string will also be used as the size of
@@ -163,7 +163,7 @@ vtkRectf vtkCategoryLegend::GetBoundingRect(vtkContext2D *painter)
     return this->Rect;
   }
 
-  painter->ApplyTextProp(this->LabelProperties.GetPointer());
+  painter->ApplyTextProp(this->LabelProperties);
 
   vtkVector2f stringBounds[2];
   painter->ComputeStringBounds("Tgyf", stringBounds->GetData());
@@ -182,13 +182,13 @@ vtkRectf vtkCategoryLegend::GetBoundingRect(vtkContext2D *painter)
   float titleWidth = 0.0f;
   if (!this->Title.empty())
   {
-    painter->ApplyTextProp(this->TitleProperties.GetPointer());
+    painter->ApplyTextProp(this->TitleProperties);
 
     painter->ComputeStringBounds(this->Title, stringBounds->GetData());
     titleWidth = stringBounds[1].GetX();
     titleHeight = stringBounds[1].GetY() + this->Padding;
 
-    painter->ApplyTextProp(this->LabelProperties.GetPointer());
+    painter->ApplyTextProp(this->LabelProperties);
   }
 
   // Calculate the widest legend label

@@ -86,7 +86,7 @@ vtkEvenlySpacedStreamlines2D::vtkEvenlySpacedStreamlines2D()
 
   this->ComputeVorticity = true;
 
-  this->InterpolatorPrototype = 0;
+  this->InterpolatorPrototype = nullptr;
 
   // by default process active point vectors
   this->SetInputArrayToProcess(0,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS,
@@ -103,8 +103,8 @@ vtkEvenlySpacedStreamlines2D::vtkEvenlySpacedStreamlines2D()
 
 vtkEvenlySpacedStreamlines2D::~vtkEvenlySpacedStreamlines2D()
 {
-  this->SetIntegrator(0);
-  this->SetInterpolatorPrototype(0);
+  this->SetIntegrator(nullptr);
+  this->SetInterpolatorPrototype(nullptr);
   this->SuperposedGrid->Delete();
   this->Streamlines->Delete();
 }
@@ -127,7 +127,7 @@ int vtkEvenlySpacedStreamlines2D::RequestData(
   {
     this->InputData->UnRegister(this);
     vtkErrorMacro(
-      "vtkEvenlySpacedStreamlines2D does not support planes not alligned with XY.");
+      "vtkEvenlySpacedStreamlines2D does not support planes not aligned with XY.");
     return 0;
   }
   std::array<double, 3> v = {{bounds[1] - bounds[0], bounds[3] - bounds[2],
@@ -260,7 +260,7 @@ int vtkEvenlySpacedStreamlines2D::ComputeCellLength(
   vtkDataSet* input;
   auto cell = vtkSmartPointer<vtkGenericCell>::New();
   double velocity[3];
-  // access the start postion
+  // access the start position
   if (!func->FunctionValues(this->StartPosition, velocity))
   {
     func->Delete();
@@ -508,22 +508,22 @@ void vtkEvenlySpacedStreamlines2D::SetInterpolatorType( int interpType )
     // specify the type of the cell locator attached to the interpolator
     vtkSmartPointer< vtkModifiedBSPTree > cellLocType =
     vtkSmartPointer< vtkModifiedBSPTree >::New();
-    cellLoc->SetCellLocatorPrototype( cellLocType.GetPointer() );
+    cellLoc->SetCellLocatorPrototype( cellLocType );
 
-    this->SetInterpolatorPrototype( cellLoc.GetPointer() );
+    this->SetInterpolatorPrototype( cellLoc );
   }
   else
   {
     // create an interpolator equipped with a point locator (by default)
     vtkSmartPointer< vtkInterpolatedVelocityField > pntLoc =
     vtkSmartPointer< vtkInterpolatedVelocityField >::New();
-    this->SetInterpolatorPrototype( pntLoc.GetPointer() );
+    this->SetInterpolatorPrototype( pntLoc );
   }
 }
 
 void vtkEvenlySpacedStreamlines2D::SetIntegratorType(int type)
 {
-  vtkInitialValueProblemSolver* ivp=0;
+  vtkInitialValueProblemSolver* ivp=nullptr;
   switch (type)
   {
     case vtkStreamTracer::RUNGE_KUTTA2:
@@ -624,9 +624,9 @@ int vtkEvenlySpacedStreamlines2D::CheckInputs(vtkAbstractInterpolatedVelocityFie
   vtkSmartPointer<vtkCompositeDataIterator> iter;
   iter.TakeReference(this->InputData->NewIterator());
 
-  vtkDataSet* input0 =NULL;
+  vtkDataSet* input0 =nullptr;
   iter->GoToFirstItem();
-  while (!iter->IsDoneWithTraversal() && input0==NULL)
+  while (!iter->IsDoneWithTraversal() && input0==nullptr)
   {
     input0 = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
     iter->GoToNextItem();
@@ -657,7 +657,7 @@ int vtkEvenlySpacedStreamlines2D::CheckInputs(vtkAbstractInterpolatedVelocityFie
   }
   else
   {
-    if(amrData && vtkAMRInterpolatedVelocityField::SafeDownCast(this->InterpolatorPrototype)==NULL)
+    if(amrData && vtkAMRInterpolatedVelocityField::SafeDownCast(this->InterpolatorPrototype)==nullptr)
     {
       this->InterpolatorPrototype = vtkAMRInterpolatedVelocityField::New();
     }
@@ -810,9 +810,9 @@ const char* vtkEvenlySpacedStreamlines2D::GetInputArrayToProcessName()
   vtkSmartPointer<vtkCompositeDataIterator> iter;
   iter.TakeReference(this->InputData->NewIterator());
 
-  vtkDataSet* input0 =NULL;
+  vtkDataSet* input0 =nullptr;
   iter->GoToFirstItem();
-  while (!iter->IsDoneWithTraversal() && input0==NULL)
+  while (!iter->IsDoneWithTraversal() && input0==nullptr)
   {
     input0 = vtkDataSet::SafeDownCast(iter->GetCurrentDataObject());
     iter->GoToNextItem();

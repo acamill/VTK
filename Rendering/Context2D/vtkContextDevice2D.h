@@ -51,7 +51,7 @@ class VTKRENDERINGCONTEXT2D_EXPORT vtkContextDevice2D : public vtkObject
 {
 public:
   vtkTypeMacro(vtkContextDevice2D, vtkObject);
-  void PrintSelf(ostream &os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream &os, vtkIndent indent) override;
 
   static vtkContextDevice2D * New();
 
@@ -63,7 +63,7 @@ public:
    * \sa DrawLines()
    */
   virtual void DrawPoly(float *points, int n,
-                        unsigned char *colors = 0, int nc_comps = 0) = 0;
+                        unsigned char *colors = nullptr, int nc_comps = 0) = 0;
 
   /**
    * Draw lines using the points - memory layout is as follows:
@@ -71,14 +71,14 @@ public:
    * which has nc_comps components (defining a single color).
    * \sa DrawPoly()
    */
-  virtual void DrawLines(float *f, int n, unsigned char *colors = 0,
+  virtual void DrawLines(float *f, int n, unsigned char *colors = nullptr,
                          int nc_comps = 0) = 0;
 
   /**
    * Draw a series of points - fastest code path due to memory layout of the
    * coordinates. The colors and nc_comps are optional - color array.
    */
-  virtual void DrawPoints(float *points, int n, unsigned char* colors = 0,
+  virtual void DrawPoints(float *points, int n, unsigned char* colors = nullptr,
                           int nc_comps = 0) = 0;
 
   /**
@@ -89,7 +89,7 @@ public:
    * \param nc_comps is the number of components for the color.
    */
   virtual void DrawPointSprites(vtkImageData *sprite, float *points, int n,
-                                unsigned char *colors = 0, int nc_comps = 0) = 0;
+                                unsigned char *colors = nullptr, int nc_comps = 0) = 0;
 
   /**
    * Draw a series of markers centered at the points supplied. The \a shape
@@ -103,7 +103,7 @@ public:
    * \param nc_comps is the number of components for the color.
    */
   virtual void DrawMarkers(int shape, bool highlight, float *points, int n,
-                           unsigned char *colors = 0, int nc_comps = 0);
+                           unsigned char *colors = nullptr, int nc_comps = 0);
 
   /**
    * Draw a quad using the specified number of points.
@@ -408,7 +408,7 @@ public:
 
 protected:
   vtkContextDevice2D();
-  ~vtkContextDevice2D() VTK_OVERRIDE;
+  ~vtkContextDevice2D() override;
 
   /**
    * Store the width and height of the device in pixels.
@@ -432,8 +432,8 @@ protected:
   vtkTextProperty *TextProp;  // Text property
 
 private:
-  vtkContextDevice2D(const vtkContextDevice2D &) VTK_DELETE_FUNCTION;
-  void operator=(const vtkContextDevice2D &) VTK_DELETE_FUNCTION;
+  vtkContextDevice2D(const vtkContextDevice2D &) = delete;
+  void operator=(const vtkContextDevice2D &) = delete;
 
 };
 

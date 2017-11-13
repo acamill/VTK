@@ -88,13 +88,13 @@ int vtkmPolyDataNormals::RequestData(
   if (!unsupported)
   {
     vtkm::filter::SurfaceNormals filter;
-    filter.SetGenerateCellNormals(this->ComputeCellNormals);
+    filter.SetGenerateCellNormals((this->ComputeCellNormals != 0));
     filter.SetCellNormalsName("Normals");
-    filter.SetGeneratePointNormals(this->ComputePointNormals);
+    filter.SetGeneratePointNormals((this->ComputePointNormals != 0));
     filter.SetPointNormalsName("Normals");
     auto result = filter.Execute(in, policy);
 
-    if (result.IsValid())
+    if (result.IsFieldValid())
     {
       out = result.GetDataSet();
       vtkmSuccess = true;
@@ -124,11 +124,11 @@ int vtkmPolyDataNormals::RequestData(
 
   if (pointNormals)
   {
-    output->GetPointData()->SetNormals(pointNormals.GetPointer());
+    output->GetPointData()->SetNormals(pointNormals);
   }
   if (cellNormals)
   {
-    output->GetCellData()->SetNormals(cellNormals.GetPointer());
+    output->GetCellData()->SetNormals(cellNormals);
   }
 
   return 1;

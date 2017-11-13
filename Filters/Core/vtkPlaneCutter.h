@@ -59,6 +59,8 @@
 
 #include "vtkDataSetAlgorithm.h"
 #include "vtkFiltersCoreModule.h" // For export macro
+#include "vtkSmartPointer.h" // For SmartPointer
+#include <vector> // For vector
 
 class vtkCellArray;
 class vtkCellData;
@@ -80,13 +82,13 @@ public:
    */
   static vtkPlaneCutter* New();
   vtkTypeMacro(vtkPlaneCutter, vtkDataSetAlgorithm);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
   //@}
 
   /**
    * The modified time depends on the delegated cut plane.
    */
-  vtkMTimeType GetMTime() VTK_OVERRIDE;
+  vtkMTimeType GetMTime() override;
 
   //@{
   /**
@@ -132,49 +134,68 @@ public:
   vtkBooleanMacro(GeneratePolygons, bool);
   //@}
 
+  //@{
+  /**
+   * Indicate whether to build the sphere tree. Computing the sphere
+   * will take some time on the first computation
+   * but if the input does not change, the computation of all further
+   * slice will be much faster. Default is on.
+   */
+  vtkSetMacro(BuildTree, bool);
+  vtkGetMacro(BuildTree, bool);
+  vtkBooleanMacro(BuildTree, bool);
+  //@}
+
+  //@{
+  /**
+   * Indicate whether to build tree hierarchy. Computing the tree
+   * hierarchy can take some time on the first computation but if
+   * the input does not change, the computation of all further
+   * slice will be faster. Default is on.
+   */
+  vtkSetMacro(BuildHierarchy, bool);
+  vtkGetMacro(BuildHierarchy, bool);
+  vtkBooleanMacro(BuildHierarchy, bool);
+  //@}
+
   /**
    * See vtkAlgorithm for details.
    */
-  int ProcessRequest(vtkInformation*, vtkInformationVector**, vtkInformationVector*) VTK_OVERRIDE;
-
-  /**
-   * Retrieve the sphere tree used to accelerate cutting. This API may
-   * be changed in the future (i.e., use a general locator as compared
-   * to a sphere tree).
-   */
-  vtkGetObjectMacro(SphereTree, vtkSphereTree);
+  int ProcessRequest(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
 
 protected:
   vtkPlaneCutter();
-  ~vtkPlaneCutter() VTK_OVERRIDE;
+  ~vtkPlaneCutter() override;
 
   vtkPlane* Plane;
   bool ComputeNormals;
   bool InterpolateAttributes;
   bool GeneratePolygons;
+  bool BuildTree;
+  bool BuildHierarchy;
 
   // Helpers
-  vtkSphereTree* SphereTree;
+  std::vector<vtkSmartPointer<vtkSphereTree>> SphereTrees;
 
   // Pipeline-related methods
   int RequestDataObject(vtkInformation*,
     vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
-  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) VTK_OVERRIDE;
+    vtkInformationVector*) override;
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
   int RequestUpdateExtent(vtkInformation*,
     vtkInformationVector**,
-    vtkInformationVector*) VTK_OVERRIDE;
-  int FillInputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
-  int FillOutputPortInformation(int port, vtkInformation* info) VTK_OVERRIDE;
+    vtkInformationVector*) override;
+  int FillInputPortInformation(int port, vtkInformation* info) override;
+  int FillOutputPortInformation(int port, vtkInformation* info) override;
 
-  virtual int ExecuteDataSet(vtkDataSet* input, vtkMultiPieceDataSet* output);
+  virtual int ExecuteDataSet(vtkDataSet* input, vtkSphereTree* tree, vtkMultiPieceDataSet* output);
 
   static void AddNormalArray(double* planeNormal, vtkDataSet* ds);
   static void InitializeOutput(vtkMultiPieceDataSet* output);
 
 private:
-  vtkPlaneCutter(const vtkPlaneCutter&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkPlaneCutter&) VTK_DELETE_FUNCTION;
+  vtkPlaneCutter(const vtkPlaneCutter&) = delete;
+  void operator=(const vtkPlaneCutter&) = delete;
 };
 
 #endif

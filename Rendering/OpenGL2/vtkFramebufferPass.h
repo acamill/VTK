@@ -36,26 +36,34 @@ class VTKRENDERINGOPENGL2_EXPORT vtkFramebufferPass : public vtkDepthImageProces
 public:
   static vtkFramebufferPass *New();
   vtkTypeMacro(vtkFramebufferPass,vtkDepthImageProcessingPass);
-  void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+  void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /**
    * Perform rendering according to a render state \p s.
    * \pre s_exists: s!=0
    */
-  void Render(const vtkRenderState *s) VTK_OVERRIDE;
+  void Render(const vtkRenderState *s) override;
 
   /**
    * Release graphics resources and ask components to release their own
    * resources.
    * \pre w_exists: w!=0
    */
-  void ReleaseGraphicsResources(vtkWindow *w) VTK_OVERRIDE;
+  void ReleaseGraphicsResources(vtkWindow *w) override;
 
   /**
    *  Set the format to use for the depth texture
    * e.g. vtkTextureObject::Float32
    */
   vtkSetMacro(DepthFormat, int);
+
+  /**
+   *  Set the format to use for the color texture
+   *  vtkTextureObject::Float16 vtkTextureObject::Float32
+   *  and vtkTextureObject::Fixed8 are supported. Fixed8
+   *  is the default.
+   */
+  vtkSetMacro(ColorFormat, int);
 
   // Get the depth texture object
   vtkGetObjectMacro(DepthTexture, vtkTextureObject);
@@ -72,7 +80,7 @@ public:
   /**
    * Destructor.
    */
-  ~vtkFramebufferPass() VTK_OVERRIDE;
+  ~vtkFramebufferPass() override;
 
   /**
    * Graphics resources.
@@ -92,10 +100,11 @@ public:
   //@}
 
   int DepthFormat;
+  int ColorFormat;
 
  private:
-  vtkFramebufferPass(const vtkFramebufferPass&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkFramebufferPass&) VTK_DELETE_FUNCTION;
+  vtkFramebufferPass(const vtkFramebufferPass&) = delete;
+  void operator=(const vtkFramebufferPass&) = delete;
 };
 
 #endif

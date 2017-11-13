@@ -19,8 +19,8 @@
 
 #include "LSDynaFamily.h"
 
-#include <errno.h>
-#include <ctype.h>
+#include <cerrno>
+#include <cctype>
 #include <cassert>
 
 #include <string>
@@ -68,7 +68,7 @@ vtkLSDynaFile_t VTK_LSDYNA_OPENFILE(const char* fname)
   return f;
 #else
   vtkLSDynaFile_t f = fopen(fname, "rb");
-  setvbuf(f,NULL,_IONBF,0); //disable buffer
+  setvbuf(f,nullptr,_IONBF,0); //disable buffer
   return f;
 #endif
 }
@@ -100,7 +100,7 @@ vtkLSDynaFile_t VTK_LSDYNA_OPENFILE(const char* fname)
 
     if ( number > 0 )
     {
-      char n[4];
+      char n[12];
       snprintf(n, sizeof(n), "%02d", number);
       blorb += n;
     }
@@ -161,7 +161,7 @@ LSDynaFamily::LSDynaFamily()
     this->StateSize = 0; // Time steps take up no room on disk
 
     this->AdaptationsMarkers.push_back( LSDynaFamilyAdaptLevel() );
-    this->Chunk = NULL;
+    this->Chunk = nullptr;
     this->ChunkWord = 0;
     this->ChunkAlloc = 0;
 
@@ -511,7 +511,7 @@ int LSDynaFamily::ClearBuffer()
     this->ChunkWord = 0;
     this->ChunkValid = 0;
     delete [] this->Chunk;
-    this->Chunk = NULL;
+    this->Chunk = nullptr;
   }
 
   return 0;

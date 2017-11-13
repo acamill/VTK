@@ -637,7 +637,7 @@ vtkFiberSurface::vtkFiberSurface()
 {
   // number of input ports is 2
   this->SetNumberOfInputPorts(2);
-  this->Fields[0] = this->Fields[1] = NULL;
+  this->Fields[0] = this->Fields[1] = nullptr;
 }
 
 //----------------------------------------------------------------------------
@@ -900,7 +900,7 @@ int vtkFiberSurface::RequestData(vtkInformation* vtkNotUsed(request),
               pointField2 = fieldScalars[1]->GetTuple1(dataIndex);
 
               // compute parameter on the parametric line for each triangle point.
-              // Assume edgeRange is a vector to represent the vector beteen interpolated
+              // Assume edgeRange is a vector to represent the vector between interpolated
               // range values and origin of polygon line edge.
               // Assume direction is the direction vector of the current polygon edge.
               // The projection of the range values onto the polygon edge
@@ -968,7 +968,7 @@ int vtkFiberSurface::RequestData(vtkInformation* vtkNotUsed(request),
                   alpha * fieldScalars[1]->GetTuple1(pointIds[1]) };
 
               // compute parameter on the parametric line for each triangle point.
-              // Assume edgeRange is a vector to represent the vector beteen interpolated
+              // Assume edgeRange is a vector to represent the vector between interpolated
               // range values and origin of polygon line edge.
               // Assume direction is the direction vector of the current polygon edge.
               // The projection of the range values onto the polygon edge

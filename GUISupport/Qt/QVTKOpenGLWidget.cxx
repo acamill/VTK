@@ -14,6 +14,8 @@
 =========================================================================*/
 #include "QVTKOpenGLWidget.h"
 
+#include <QApplication>
+#include <QDesktopWidget>
 #include <QMouseEvent>
 #include <QOpenGLContext>
 #include <QOpenGLDebugLogger>
@@ -54,7 +56,7 @@ public:
 
   void SetTarget(QVTKOpenGLWidget* target) { this->Target = target; }
 
-  void Execute(vtkObject*, unsigned long eventId, void* callData) VTK_OVERRIDE
+  void Execute(vtkObject*, unsigned long eventId, void* callData) override
   {
     if (this->Target)
     {
@@ -71,12 +73,12 @@ public:
             // can get to the surface that was used to do that. We simply
             // reactivate on that surface.
             QOpenGLContext* ctxt = this->Target->context();
-            QSurface* surface = ctxt? ctxt->surface() : NULL;
+            QSurface* surface = ctxt? ctxt->surface() : nullptr;
             if (surface)
             {
               ctxt->makeCurrent(surface);
             }
-            Q_ASSERT(ctxt == NULL || surface != NULL);
+            Q_ASSERT(ctxt == nullptr || surface != nullptr);
           }
           break;
 
@@ -92,6 +94,8 @@ public:
           break;
 
         case vtkCommand::StartEvent:
+          VTK_FALLTHROUGH;
+        case vtkCommand::StartPickEvent:
           this->Target->startEventCallback();
           break;
       }
@@ -100,14 +104,14 @@ public:
 
 protected:
   QVTKOpenGLWidgetObserver() {}
-  ~QVTKOpenGLWidgetObserver() {}
+  ~QVTKOpenGLWidgetObserver() override {}
   QPointer<QVTKOpenGLWidget> Target;
 };
 
 //-----------------------------------------------------------------------------
 QVTKOpenGLWidget::QVTKOpenGLWidget(QWidget* parentWdg, Qt::WindowFlags f)
   : Superclass(parentWdg, f)
-  , InteractorAdaptor(NULL)
+  , InteractorAdaptor(nullptr)
   , EnableHiDPI(false)
   , OriginalDPI(0)
   , FBO(nullptr)
@@ -139,8 +143,8 @@ QVTKOpenGLWidget::~QVTKOpenGLWidget()
   // essential to cleanup context so that the render window finalizes and
   // releases any graphics resources it may have allocated.
   this->cleanupContext();
-  this->SetRenderWindow(static_cast<vtkGenericOpenGLRenderWindow*>(NULL));
-  this->Observer->SetTarget(NULL);
+  this->SetRenderWindow(static_cast<vtkGenericOpenGLRenderWindow*>(nullptr));
+  this->Observer->SetTarget(nullptr);
   delete this->InteractorAdaptor;
   delete this->Logger;
 }
@@ -150,7 +154,7 @@ void QVTKOpenGLWidget::SetRenderWindow(vtkRenderWindow* win)
 {
   vtkGenericOpenGLRenderWindow* gwin = vtkGenericOpenGLRenderWindow::SafeDownCast(win);
   this->SetRenderWindow(gwin);
-  if (gwin == NULL && win != NULL)
+  if (gwin == nullptr && win != nullptr)
   {
     qDebug() << "QVTKOpenGLWidget requires a `vtkGenericOpenGLRenderWindow`. `"
              << win->GetClassName() << "` is not supported.";
@@ -167,7 +171,7 @@ void QVTKOpenGLWidget::SetRenderWindow(vtkGenericOpenGLRenderWindow* win)
 
   if (this->RenderWindow)
   {
-    this->RenderWindow->RemoveObserver(this->Observer.Get());
+    this->RenderWindow->RemoveObserver(this->Observer);
     this->RenderWindow->SetReadyForRendering(false);
   }
   this->RenderWindow = win;
@@ -183,18 +187,19 @@ void QVTKOpenGLWidget::SetRenderWindow(vtkGenericOpenGLRenderWindow* win)
       // create a default interactor
       vtkNew<QVTKInteractor> iren;
       // iren->SetUseTDx(this->UseTDx);
-      this->RenderWindow->SetInteractor(iren.Get());
+      this->RenderWindow->SetInteractor(iren);
       iren->Initialize();
 
       // now set the default style
       vtkNew<vtkInteractorStyleTrackballCamera> style;
-      iren->SetInteractorStyle(style.Get());
+      iren->SetInteractorStyle(style);
     }
 
-    this->RenderWindow->AddObserver(vtkCommand::WindowMakeCurrentEvent, this->Observer.Get());
-    this->RenderWindow->AddObserver(vtkCommand::WindowIsCurrentEvent, this->Observer.Get());
-    this->RenderWindow->AddObserver(vtkCommand::WindowFrameEvent, this->Observer.Get());
-    this->RenderWindow->AddObserver(vtkCommand::StartEvent, this->Observer.Get());
+    this->RenderWindow->AddObserver(vtkCommand::WindowMakeCurrentEvent, this->Observer);
+    this->RenderWindow->AddObserver(vtkCommand::WindowIsCurrentEvent, this->Observer);
+    this->RenderWindow->AddObserver(vtkCommand::WindowFrameEvent, this->Observer);
+    this->RenderWindow->AddObserver(vtkCommand::StartEvent, this->Observer);
+    this->RenderWindow->AddObserver(vtkCommand::StartPickEvent, this->Observer);
 
     if (this->FBO)
     {
@@ -221,7 +226,7 @@ void QVTKOpenGLWidget::startEventCallback()
 //-----------------------------------------------------------------------------
 vtkRenderWindow* QVTKOpenGLWidget::GetRenderWindow()
 {
-  return this->RenderWindow.Get();
+  return this->RenderWindow;
 }
 
 //-----------------------------------------------------------------------------
@@ -315,6 +320,10 @@ void QVTKOpenGLWidget::recreateFBO()
   QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
   GLint samples;
   f->glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_SAMPLES, &samples);
+
+  // Some graphics drivers report the number of samples as 1 when
+  // multisampling is off. Set the number of samples to 0 in this case.
+  samples = samples > 1 ? samples : 0;
   this->RenderWindow->SetMultiSamples(static_cast<int>(samples));
 
   QOpenGLFramebufferObjectFormat format;
@@ -335,6 +344,10 @@ void QVTKOpenGLWidget::recreateFBO()
   this->RenderWindow->SetSize(deviceSize.width(), deviceSize.height());
   this->RenderWindow->SetPosition(this->x() * devicePixelRatio_, this->y() * devicePixelRatio_);
 
+  // Set screen size on render window.
+  const QRect screenGeometry = QApplication::desktop()->screenGeometry(this);
+  this->RenderWindow->SetScreenSize(screenGeometry.width(), screenGeometry.height());
+
   this->FBO = new QOpenGLFramebufferObject(deviceSize, format);
   this->FBO->bind();
   this->RenderWindow->SetForceMaximumHardwareLineWidth(1);
@@ -346,6 +359,11 @@ void QVTKOpenGLWidget::recreateFBO()
   // Since the context or frame buffer was recreated, if a paintGL call ensues,
   // we need to ensure we're requesting VTK to render.
   this->DoVTKRenderInPaintGL = true;
+
+  // Clear to ensure that an uninitialized framebuffer is never displayed.
+  f->glDisable(GL_SCISSOR_TEST);
+  f->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  f->glClear(GL_COLOR_BUFFER_BIT);
 }
 
 //-----------------------------------------------------------------------------
@@ -549,7 +567,7 @@ bool QVTKOpenGLWidget::renderVTK()
   // bind it anyways, but we'll be extra cautious.
   this->FBO->bind();
 
-  vtkRenderWindowInteractor* iren = this->RenderWindow ? this->RenderWindow->GetInteractor() : NULL;
+  vtkRenderWindowInteractor* iren = this->RenderWindow ? this->RenderWindow->GetInteractor() : nullptr;
   if (iren)
   {
     iren->Render();

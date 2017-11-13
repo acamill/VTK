@@ -44,13 +44,6 @@ set (VolumeOpenGLCxxTests
   ZsweepConcavities.cxx
   )
 
-if (NOT VTK_LEGACY_REMOVE)
-  list (APPEND VolumeOpenGLCxxTests
-    TestProp3DFollower.cxx
-    TestTM3DLightComponents.cxx
-    volProt.cxx)
-endif()
-
 # These tests are only built for the OpenGL2 backend
 set (VolumeOpenGL2CxxTests
   TestGPURayCastAverageIP.cxx
@@ -86,6 +79,7 @@ set (VolumeOpenGL2CxxTests
   TestGPURayCastRenderDepthToImage2.cxx
   TestGPURayCastRenderToTexture.cxx
   TestGPURayCastTextureStreaming.cxx
+  TestGPURayCastTextureStreamingMask.cxx
   TestGPURayCastThreeComponentsAdditive.cxx
   TestGPURayCastThreeComponentsIndependent.cxx
   TestGPURayCastTransfer2D.cxx
@@ -93,9 +87,12 @@ set (VolumeOpenGL2CxxTests
   TestGPURayCastTwoComponentsDependentGradient.cxx
   TestGPURayCastTwoComponentsGradient.cxx
   TestGPURayCastTwoComponentsIndependent.cxx
+  TestGPURayCastUserShader.cxx
+  TestGPURayCastUserShader2.cxx
   TestGPURayCastVolumeDepthPass.cxx
   TestGPURayCastVolumeLightKit.cxx
   TestGPURayCastVolumePicking.cxx
+  TestGPURayCastVolumePlane.cxx
   TestGPURayCastVolumePolyData.cxx
   TestGPURayCastVolumeRotation.cxx
   TestGPURayCastVolumeScale.cxx
@@ -104,6 +101,27 @@ set (VolumeOpenGL2CxxTests
   TestProjectedTetrahedraTransform.cxx
   TestRemoveVolumeNonCurrentContext.cxx
   )
+
+set(test_shader_files
+  TestGPURayCastUserShader2_FS.glsl
+  )
+unset(shader_c_files)
+foreach(file ${test_shader_files})
+  get_filename_component(file_we ${file} NAME_WE)
+  set(src  ${CMAKE_CURRENT_SOURCE_DIR}/${file})
+  set(res  ${CMAKE_CURRENT_BINARY_DIR}/${file_we}.cxx)
+  set(resh ${CMAKE_CURRENT_BINARY_DIR}/${file_we}.h)
+  list(APPEND shader_c_files ${res})
+  add_custom_command(
+    OUTPUT ${res} ${resh}
+    DEPENDS ${src} vtkEncodeString
+    COMMAND vtkEncodeString
+    ARGS ${res} ${src} ${file_we}
+      --build-header
+    )
+endforeach()
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # everyone gets these tests
 vtk_add_test_cxx(${vtk-module}CxxTests tests
@@ -120,6 +138,7 @@ endif ()
 if ("${VTK_RENDERING_BACKEND}" STREQUAL "OpenGL2")
   vtk_test_cxx_executable(${vtk-module}CxxTests tests
     RENDERING_FACTORY
+    ${shader_c_files}
     )
   return()
 endif ()
@@ -131,20 +150,3 @@ vtk_add_test_cxx(${vtk-module}CxxTests tests
 vtk_test_cxx_executable(${vtk-module}CxxTests tests
   RENDERING_FACTORY
   ExerciseUnstructuredGridRayCastMapper.cxx)
-
-if (NOT VTK_LEGACY_REMOVE)
-  if(NOT VTK_TEST_TIMEOUT_TestProp3DFollower)
-    set(VTK_TEST_TIMEOUT_TestProp3DFollower 100)
-  endif()
-  set_tests_properties(${vtk-module}Cxx-TestProp3DFollower
-    PROPERTIES TIMEOUT ${VTK_TEST_TIMEOUT_TestProp3DFollower})
-endif()
-
-if (NOT VTK_LEGACY_REMOVE)
-  # Allow local customization of timeout for this test.
-  if(NOT VTK_TEST_TIMEOUT_TestTM3DLightComponents)
-    set(VTK_TEST_TIMEOUT_TestTM3DLightComponents 120)
-  endif()
-  set_tests_properties(${vtk-module}Cxx-TestTM3DLightComponents
-    PROPERTIES TIMEOUT ${VTK_TEST_TIMEOUT_TestTM3DLightComponents})
-endif()
