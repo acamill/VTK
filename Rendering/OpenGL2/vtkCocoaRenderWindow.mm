@@ -1513,9 +1513,6 @@ void vtkCocoaRenderWindow::SetCocoaManager(void *manager)
     if (currentCocoaManager)
     {
       CFRelease(currentCocoaManager);
-      // Since the NSMutableDictionary was originally made with
-      // [NSMutableDictionary dictionary] we need to Objective-C free it too.
-      [currentCocoaManager dealloc];
     }
     if (newCocoaManager)
     {
