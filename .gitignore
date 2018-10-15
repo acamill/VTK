@@ -12,3 +12,9 @@ __pycache__/
 # Exclude some Xcode stuff.
 xcuserdata
 project.xcworkspace
+
+vtk-*/
+v7*/
+v8*/
+macos-v*
+android-arm*

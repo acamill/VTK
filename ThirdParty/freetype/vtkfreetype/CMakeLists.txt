@@ -106,9 +106,10 @@ TARGET_LINK_LIBRARIES(vtkfreetype ${vtkzlib_LIBRARIES})
 #
 # If we want freetype's Mac font support we need to link against
 # a couple of Mac OS X frameworks.
-#
-IF (APPLE AND VTKFREETYPE_MAC_FONT_SUPPORT)
+IF( NOT APPLE_IOS )
+  IF (APPLE AND VTKFREETYPE_MAC_FONT_SUPPORT)
     TARGET_LINK_LIBRARIES (vtkfreetype "-framework ApplicationServices -framework CoreServices")
+  ENDIF ()
 ENDIF ()
 
 #
@@ -132,13 +133,13 @@ IF(NOT VTK_INSTALL_NO_DEVELOPMENT)
     DESTINATION ${VTK_INSTALL_INCLUDE_DIR}/vtkfreetype/include
     COMPONENT Development)
 
-  file(GLOB freetype_headers 
+  file(GLOB freetype_headers
     "${VTKFREETYPE_SOURCE_DIR}/include/freetype/*.h")
   INSTALL(FILES ${freetype_headers}
     DESTINATION ${VTK_INSTALL_INCLUDE_DIR}/vtkfreetype/include/freetype
     COMPONENT Development)
 
-  file(GLOB freetype_config_headers 
+  file(GLOB freetype_config_headers
     "${VTKFREETYPE_SOURCE_DIR}/include/freetype/config/*.h")
   if(freetype_config_headers_exclude)
     list(REMOVE_ITEM freetype_config_headers ${freetype_config_headers_exclude})
