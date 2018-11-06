@@ -22,6 +22,10 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vtkpngConfig.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/vtkpngConfig.h)
 
+if(APPLE_IOS)
+  add_definitions(-DPNG_ARM_NEON_OPT=0)
+endif()
+
 vtk_add_library(vtkpng ${PNG_SRCS})
 
 target_link_libraries(vtkpng ${vtkzlib_LIBRARIES})
