@@ -30,7 +30,8 @@
 
 class vtkRenderWindow;
 class vtkRenderer;
-class vtkPolydata;
+class vtkPolyData;
+
 class vtkOBJPolyDataProcessor;
 
 /** @note{updated by peter karasev, 2015 to read texture coordinates + material properties}
@@ -80,6 +81,8 @@ public:
    * Get a string describing an output
    */
   std::string GetOutputDescription(int idx);
+
+  vtkPolyData* GetOutput(int idx);
 
 protected:
   vtkOBJImporter();

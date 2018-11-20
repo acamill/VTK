@@ -128,6 +128,10 @@ const char* vtkOBJImporter::GetTexturePath( ) const
   return this->Impl->GetTexturePath().data();
 }
 
+vtkPolyData* vtkOBJImporter::GetOutput(int idx){
+  return this->Impl->GetOutput(idx);
+}
+
 std::string vtkOBJImporter::GetOutputDescription(int idx)
 {
   vtkOBJImportedMaterial *mtl = this->Impl->GetMaterial(idx);
@@ -1042,6 +1046,7 @@ void vtkOBJPolyDataProcessor::PrintSelf(ostream& os, vtkIndent indent)
 
 
 //----------------------------------------------------------------------------
+
 vtkPolyData* vtkOBJPolyDataProcessor::GetOutput(int idx)
 {
   if ( idx < (int)outVector_of_vtkPolyData.size() )
