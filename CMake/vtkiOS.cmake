@@ -6,9 +6,9 @@ set(BUILD_DIR ${CMAKE_BINARY_DIR}/CMakeExternals/Build)
 set(INSTALL_DIR ${CMAKE_BINARY_DIR}/CMakeExternals/Install)
 
 # Remove previous configurations
-file(REMOVE_RECURSE ${PREFIX_DIR})
-file(REMOVE_RECURSE ${BUILD_DIR})
-file(REMOVE_RECURSE ${INSTALL_DIR})
+# file(REMOVE_RECURSE ${PREFIX_DIR})
+# file(REMOVE_RECURSE ${BUILD_DIR})
+# file(REMOVE_RECURSE ${INSTALL_DIR})
 
 # Define default architectures to compile for
 set(IOS_SIMULATOR_ARCHITECTURES "x86_64"
@@ -80,7 +80,7 @@ macro(compile_vtk_tools)
     BINARY_DIR ${CMAKE_BINARY_DIR}/CompileTools
     INSTALL_COMMAND ""
     ${VTK_BUILD_COMMAND} vtkCompileTools
-    BUILD_ALWAYS 1
+    # BUILD_ALWAYS 1
     CMAKE_CACHE_ARGS
       -DCMAKE_BUILD_TYPE:STRING=Release
       -DVTK_BUILD_ALL_MODULES:BOOL=OFF
@@ -126,6 +126,7 @@ option(Module_vtkFiltersPoints "Turn on or off this module" OFF)
 option(Module_vtkIOGeometry "Turn on or off this module" OFF)
 option(Module_vtkIOLegacy "Turn on or off this module" OFF)
 option(Module_vtkIOImage "Turn on or off this module" OFF)
+option(Module_vtkIOImport "Turn on or off this module" OFF)
 option(Module_vtkIOPLY "Turn on or off this module" OFF)
 option(Module_vtkIOInfovis "Turn on or off this module" OFF)
 option(Module_vtkImagingHybrid "Turn on or off this module" OFF)
@@ -133,6 +134,7 @@ option(Module_vtkRenderingFreeType "Turn on or off this module" OFF)
 option(Module_vtkRenderingImage "Turn on or off this module" OFF)
 option(Module_vtkRenderingVolumeOpenGL2 "Include Volume Rendering Support" ON)
 option(Module_vtkRenderingLOD "Include LOD Rendering Support" OFF)
+option(Module_PoissonReconstruction "Include remote PoissonReconstruction" OFF)
 
 mark_as_advanced(Module_${vtk-module})
 
@@ -164,6 +166,7 @@ set(ios_cmake_flags
   -DModule_vtkIOGeometry:BOOL=${Module_vtkIOGeometry}
   -DModule_vtkIOLegacy:BOOL=${Module_vtkIOLegacy}
   -DModule_vtkIOImage:BOOL=${Module_vtkIOImage}
+  -DModule_vtkIOImport:BOOL=${Module_vtkIOImport}
   -DModule_vtkIOPLY:BOOL=${Module_vtkIOPLY}
   -DModule_vtkIOInfovis:BOOL=${Module_vtkIOInfovis}
   -DModule_vtkImagingHybrid:BOOL=${Module_vtkImagingHybrid}
@@ -171,6 +174,7 @@ set(ios_cmake_flags
   -DModule_vtkRenderingImage:BOOL=${Module_vtkRenderingImage}
   -DModule_vtkRenderingVolumeOpenGL2:BOOL=${Module_vtkRenderingVolumeOpenGL2}
   -DModule_vtkRenderingLOD:BOOL=${Module_vtkRenderingLOD}
+  -DModule_PoissonReconstruction:BOOL=${Module_PoissonReconstruction}
 )
 
 if (Module_vtkDICOM AND IOS_EMBED_BITCODE)
