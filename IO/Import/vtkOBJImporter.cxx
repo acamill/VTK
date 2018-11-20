@@ -128,6 +128,10 @@ const char* vtkOBJImporter::GetTexturePath( ) const
   return this->Impl->GetTexturePath().data();
 }
 
+vtkPolyData* vtkOBJImporter::GetOutput(){
+  return this->Impl->GetOutput(0);
+}
+
 vtkPolyData* vtkOBJImporter::GetOutput(int idx){
   return this->Impl->GetOutput(idx);
 }

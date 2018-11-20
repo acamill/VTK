@@ -82,7 +82,12 @@ public:
    */
   std::string GetOutputDescription(int idx);
 
-  vtkPolyData* GetOutput(int idx);
+  //@{
+  /**
+   * Get the output data object for a port on this algorithm.
+   */
+  vtkPolyData* GetOutput();
+  vtkPolyData* GetOutput(int);
 
 protected:
   vtkOBJImporter();
