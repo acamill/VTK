@@ -127,8 +127,22 @@ bool WriteTexture(std::ofstream& f, const std::string& baseName, vtkImageData* t
   mtlName = vtksys::SystemTools::GetFilenameName(mtlName);
   pngName = vtksys::SystemTools::GetFilenameName(pngName);
 
+  // standards
+  float Ka[4] = {1, 1, 1, 0};
+  float Kd[4] = {1, 1, 1, 0};
+  float Ks[4] = {0, 0, 0, 0};
+  float Tr = 1.f;
+  int illum = 1;
+  float Ns = 0.f;
+
   // set material
   fmtl << "newmtl vtktexture\n";
+  fmtl << "Ka " << Ka[0] << " " << Ka[1] << " " << Ka[2] << std::endl;
+  fmtl << "Kd " << Kd[0] << " " << Kd[1] << " " << Kd[2] << std::endl;
+  fmtl << "Ks " << Ks[0] << " " << Ks[1] << " " << Ks[2] << std::endl;
+  fmtl << "Tr " << Tr << std::endl;
+  fmtl << "illum " << illum << std::endl;
+  fmtl << "Ns " << Ns << std::endl;
   fmtl << "map_Kd " << pngName << "\n";
 
   // declare material in obj file
@@ -152,7 +166,7 @@ vtkOBJWriter::vtkOBJWriter()
 //----------------------------------------------------------------------------
 vtkOBJWriter::~vtkOBJWriter()
 {
-  this->SetFileName(nullptr);
+  delete [] this->FileName;
 }
 
 //----------------------------------------------------------------------------
