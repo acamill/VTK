@@ -313,6 +313,8 @@ void vtkJPEGWriter::WriteSlice(vtkImageData *data, int* uExtent)
       break;
     case 3: cinfo.in_color_space = JCS_RGB;
       break;
+    case 4: cinfo.in_color_space = JCS_CMYK;
+      break;
     default: cinfo.in_color_space = JCS_UNKNOWN;
       break;
   }
