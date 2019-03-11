@@ -10,6 +10,7 @@ set(Module_SRCS
   vtkFillHolesFilter.cxx
   vtkGeodesicPath.cxx
   vtkGraphGeodesicPath.cxx
+  vtkHausdorffDistancePointSetFilter.cxx
   vtkLinearExtrusionFilter.cxx
   vtkLinearSubdivisionFilter.cxx
   vtkLoopSubdivisionFilter.cxx
