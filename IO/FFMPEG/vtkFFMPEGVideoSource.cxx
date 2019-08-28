@@ -26,6 +26,8 @@
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+#include <libavutil/stereo3d.h>
+#include <libavcodec/avcodec.h>
 }
 
 #include <cctype>
@@ -126,7 +128,15 @@ vtkFFMPEGVideoSource::vtkFFMPEGVideoSource()
   , FeedThreadId(-1)
   , FileName(nullptr)
 {
+  // changed from superclass
+  this->OutputFormat = VTK_RGB;
+  this->FrameBufferBitsPerPixel = 24;
+  this->NumberOfScalarComponents = 3;
+  this->FrameBufferRowAlignment = 4;
+
   this->Internal = new vtkFFMPEGVideoSourceInternal;
+
+  this->Stereo3D = false;
 }
 
 //----------------------------------------------------------------------------
@@ -192,6 +202,24 @@ void vtkFFMPEGVideoSource::Initialize()
 
   this->Internal->VideoDecodeContext->thread_count = this->DecodingThreads;
   // this->Internal->VideoDecodeContext->thread_type = FF_THREAD_FRAME;
+
+  // examine the video stream side data for additional information
+  this->Stereo3D = false;
+  if (this->Internal->VideoStream->nb_side_data > 0)
+  {
+    for (int i = 0; i < this->Internal->VideoStream->nb_side_data; ++i)
+    {
+      AVPacketSideData sd = this->Internal->VideoStream->side_data[i];
+      if (sd.type == AV_PKT_DATA_STEREO3D)
+      {
+        AVStereo3D *stereo = reinterpret_cast<AVStereo3D *>(sd.data);
+        if (stereo->type == AV_STEREO3D_TOPBOTTOM)
+        {
+          this->Stereo3D = true;
+        }
+      }
+    }
+  }
 
   avcodec_parameters_to_context(
     this->Internal->VideoDecodeContext,
@@ -388,15 +416,14 @@ void *vtkFFMPEGVideoSource::Feed(vtkMultiThreader::ThreadInfo *data)
     // check to see if we are being told to quit every so often
     if (count == 10)
     {
-      data->ActiveFlagLock->Lock();
+      std::lock_guard<std::mutex>(*data->ActiveFlagLock);
       done = done || (*(data->ActiveFlag) == 0);
-      data->ActiveFlagLock->Unlock();
       count = 0;
     }
     count++;
   }
 
-  // flush remaning data
+  // flush remaining data
   this->FeedMutex->Lock();
   avcodec_send_packet(this->Internal->VideoDecodeContext, nullptr);
   this->FeedCondition->Signal();
@@ -443,7 +470,7 @@ static void vtkThreadSleep(double time)
     {
       if (i == 0 && count % 100 == 0)
       {
-        cerr << "dropped frames, now beind by " << remaining << " seconds\n";
+        cerr << "dropped frames, now behind by " << remaining << " seconds\n";
       }
       break;
     }
@@ -506,16 +533,33 @@ void *vtkFFMPEGVideoSource::Drain(vtkMultiThreader::ThreadInfo *data)
     if (ret == 0)
     {
       vtkThreadSleep(startTime + frame/rate);
-      this->InternalGrab();
+      if (this->VideoCallback)
+      {
+        vtkFFMPEGVideoSourceVideoCallbackData cbd;
+        cbd.Height = this->Internal->Frame->height;
+        int p = 0;
+        while (this->Internal->Frame->data[p] != nullptr && p < 8)
+        {
+          cbd.LineSize[p] = this->Internal->Frame->linesize[p];
+          cbd.Data[p] = this->Internal->Frame->data[p];
+          ++p;
+        }
+        cbd.Caller = this;
+        cbd.ClientData = this->VideoCallbackClientData;
+        this->VideoCallback(cbd);
+      }
+      else
+      {
+        this->InternalGrab();
+      }
       frame++;
     }
 
     // check to see if we are being told to quit every so often
     if (count == 10)
     {
-      data->ActiveFlagLock->Lock();
+      std::lock_guard<std::mutex>(*data->ActiveFlagLock);
       done = done || (*(data->ActiveFlag) == 0);
-      data->ActiveFlagLock->Unlock();
       count = 0;
     }
     count++;
@@ -635,9 +679,8 @@ void *vtkFFMPEGVideoSource::DrainAudio(vtkMultiThreader::ThreadInfo *data)
     // check to see if we are being told to quit every so often
     if (count == 10)
     {
-      data->ActiveFlagLock->Lock();
+      std::lock_guard<std::mutex>(*data->ActiveFlagLock);
       done = done || (*(data->ActiveFlag) == 0);
-      data->ActiveFlagLock->Unlock();
       count = 0;
     }
     count++;

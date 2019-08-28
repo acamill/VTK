@@ -719,11 +719,6 @@ int getPickState(vtkRenderer *ren)
     return selector->GetCurrentPass();
   }
 
-  if (ren->GetRenderWindow()->GetIsPicking())
-  {
-    return vtkHardwareSelector::ACTOR_PASS;
-  }
-
   return vtkHardwareSelector::MIN_KNOWN_PASS - 1;
 }
 }
@@ -942,7 +937,7 @@ void vtkOpenGLPointGaussianMapper::RenderInternal(
   vtkRenderer *ren, vtkActor *actor)
 {
   // Set the PointSize
-#if GL_ES_VERSION_3_0 != 1
+#ifndef GL_ES_VERSION_3_0
   glPointSize(actor->GetProperty()->GetPointSize()); // not on ES2
 #endif
 
@@ -1017,13 +1012,14 @@ void vtkOpenGLPointGaussianMapper::ReleaseGraphicsResources(vtkWindow* win)
 }
 
 //-----------------------------------------------------------------------------
-bool vtkOpenGLPointGaussianMapper::GetIsOpaque()
+bool vtkOpenGLPointGaussianMapper::HasTranslucentPolygonalGeometry()
 {
+  // emissive always needs to be opaque
   if (this->Emissive)
   {
-    return true;
+    return false;
   }
-  return this->Superclass::GetIsOpaque();
+  return this->Superclass::HasTranslucentPolygonalGeometry();
 }
 
 //-------------------------------------------------------------------------
@@ -1144,7 +1140,7 @@ void vtkOpenGLPointGaussianMapper::ProcessSelectorPixelBuffers(
     return;
   }
 
-  if (PickPixels.size() == 0 && pixeloffsets.size())
+  if (PickPixels.empty() && !pixeloffsets.empty())
   {
     // preprocess the image to find matching pixels and
     // store them in a map of vectors based on flat index
@@ -1184,7 +1180,7 @@ void vtkOpenGLPointGaussianMapper::ProcessSelectorPixelBuffers(
   // for each block update the image
   for (auto hiter = this->Helpers.begin(); hiter != this->Helpers.end(); ++hiter)
   {
-    if (this->PickPixels[(*hiter)->FlatIndex].size())
+    if (!this->PickPixels[(*hiter)->FlatIndex].empty())
     {
       (*hiter)->ProcessSelectorPixelBuffers(sel,
         this->PickPixels[(*hiter)->FlatIndex], prop);

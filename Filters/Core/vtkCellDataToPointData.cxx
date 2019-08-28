@@ -82,7 +82,7 @@ namespace
           // divide point data by the number of cells using it <==>
           // point_data /= denum
           std::transform(dstbeg, dstbeg+ncomps, dstbeg,
-                         std::bind2nd(std::divides<T>(), denom));
+                         std::bind(std::divides<T>(), std::placeholders::_1, denom));
         }
       }
     }
@@ -335,6 +335,7 @@ int vtkCellDataToPointData::RequestData(
     output->GetCellData()->CopyFieldOn(vtkDataSetAttributes::GhostArrayName());
   }
   output->GetCellData()->PassData(input->GetCellData());
+  output->GetFieldData()->PassData(input->GetFieldData());
 
   return 1;
 }

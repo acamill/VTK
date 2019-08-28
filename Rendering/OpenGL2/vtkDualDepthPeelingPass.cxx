@@ -397,6 +397,8 @@ bool vtkDualDepthPeelingPass::PostReplaceTranslucentShaderValues(
             );
       break;
 
+    case vtkDualDepthPeelingPass::Inactive:
+    case vtkDualDepthPeelingPass::NumberOfPasses:
     default:
       break;
   }
@@ -749,6 +751,8 @@ bool vtkDualDepthPeelingPass::PreReplaceVolumetricShaderValues(
 
       break;
 
+    case vtkDualDepthPeelingPass::Inactive:
+    case vtkDualDepthPeelingPass::NumberOfPasses:
     default:
       break;
   }
@@ -774,7 +778,7 @@ bool vtkDualDepthPeelingPass::SetTranslucentShaderParameters(
             "lastDepthPeel",
             this->Textures[this->DepthSource]->GetTextureUnit());
       program->SetUniformi(
-            "frontDepthPeel",
+            "lastFrontPeel",
             this->Textures[this->FrontSource]->GetTextureUnit());
       break;
 
@@ -784,6 +788,8 @@ bool vtkDualDepthPeelingPass::SetTranslucentShaderParameters(
             this->Textures[this->DepthSource]->GetTextureUnit());
       break;
 
+    case vtkDualDepthPeelingPass::Inactive:
+    case vtkDualDepthPeelingPass::NumberOfPasses:
     default:
       break;
   }
@@ -827,6 +833,8 @@ bool vtkDualDepthPeelingPass::SetVolumetricShaderParameters(
             this->Textures[this->DepthSource]->GetTextureUnit());
       break;
 
+    case vtkDualDepthPeelingPass::Inactive:
+    case vtkDualDepthPeelingPass::NumberOfPasses:
     default:
       break;
   }
@@ -1058,8 +1066,7 @@ void vtkDualDepthPeelingPass::ActivateDrawBuffers(const TextureName *ids,
   this->Framebuffer->DeactivateDrawBuffers();
   for (size_t i = 0; i < numTex; ++i)
   {
-    this->Framebuffer->AddColorAttachment(GL_DRAW_FRAMEBUFFER,
-                                          static_cast<unsigned int>(i),
+    this->Framebuffer->AddColorAttachment(static_cast<unsigned int>(i),
                                           this->Textures[ids[i]]);
   }
 
@@ -1594,7 +1601,7 @@ void vtkDualDepthPeelingPass::StartTranslucentOcclusionQuery()
   // ES 3.0 only supports checking if *any* samples passed. We'll just use
   // that query to stop peeling once all frags are processed, and ignore the
   // requested occlusion ratio.
-#if GL_ES_VERSION_3_0 == 1
+#ifdef GL_ES_VERSION_3_0
   glBeginQuery(GL_ANY_SAMPLES_PASSED, this->TranslucentOcclusionQueryId);
 #else // GL ES 3.0
   glBeginQuery(GL_SAMPLES_PASSED, this->TranslucentOcclusionQueryId);
@@ -1608,7 +1615,7 @@ void vtkDualDepthPeelingPass::EndTranslucentOcclusionQuery()
   // sync the stream.
   TIME_FUNCTION(vtkDualDepthPeelingPass::EndTranslucentOcclusionQuery);
 
-#if GL_ES_VERSION_3_0 == 1
+#ifdef GL_ES_VERSION_3_0
   glEndQuery(GL_ANY_SAMPLES_PASSED);
   GLuint anySamplesPassed;
   glGetQueryObjectuiv(this->TranslucentOcclusionQueryId, GL_QUERY_RESULT,
@@ -1628,7 +1635,7 @@ void vtkDualDepthPeelingPass::StartVolumetricOcclusionQuery()
   // ES 3.0 only supports checking if *any* samples passed. We'll just use
   // that query to stop peeling once all frags are processed, and ignore the
   // requested occlusion ratio.
-#if GL_ES_VERSION_3_0 == 1
+#ifdef GL_ES_VERSION_3_0
   glBeginQuery(GL_ANY_SAMPLES_PASSED, this->VolumetricOcclusionQueryId);
 #else // GL ES 3.0
   glBeginQuery(GL_SAMPLES_PASSED, this->VolumetricOcclusionQueryId);
@@ -1642,7 +1649,7 @@ void vtkDualDepthPeelingPass::EndVolumetricOcclusionQuery()
   // sync the stream.
   TIME_FUNCTION(vtkDualDepthPeelingPass::EndVolumetricOcclusionQuery);
 
-#if GL_ES_VERSION_3_0 == 1
+#ifdef GL_ES_VERSION_3_0
   glEndQuery(GL_ANY_SAMPLES_PASSED);
   GLuint anySamplesPassed;
   glGetQueryObjectuiv(this->VolumetricOcclusionQueryId, GL_QUERY_RESULT,

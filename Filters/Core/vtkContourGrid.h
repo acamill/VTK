@@ -83,7 +83,7 @@ public:
   double *GetValues();
   void GetValues(double *contourValues);
   void SetNumberOfContours(int number);
-  int GetNumberOfContours();
+  vtkIdType GetNumberOfContours();
   void GenerateValues(int numContours, double range[2]);
   void GenerateValues(int numContours, double rangeStart, double rangeEnd);
   //@}
@@ -116,9 +116,11 @@ public:
    * ComputeGradients is not used so these methods don't affect
    * anything (VTK 6.0).
    */
+#ifndef VTK_LEGACY_REMOVE
   vtkSetMacro(ComputeGradients,vtkTypeBool);
   vtkGetMacro(ComputeGradients,vtkTypeBool);
   vtkBooleanMacro(ComputeGradients,vtkTypeBool);
+#endif
   //@}
 
   //@{
@@ -195,7 +197,9 @@ protected:
 
   vtkContourValues *ContourValues;
   vtkTypeBool ComputeNormals;
+#ifndef VTK_LEGACY_REMOVE
   vtkTypeBool ComputeGradients;
+#endif
   vtkTypeBool ComputeScalars;
   vtkTypeBool GenerateTriangles;
 
@@ -251,7 +255,7 @@ inline void vtkContourGrid::SetNumberOfContours(int number)
 /**
  * Get the number of contours in the list of contour values.
  */
-inline int vtkContourGrid::GetNumberOfContours()
+inline vtkIdType vtkContourGrid::GetNumberOfContours()
 {return this->ContourValues->GetNumberOfContours();}
 
 /**

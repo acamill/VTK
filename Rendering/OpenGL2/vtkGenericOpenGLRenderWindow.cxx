@@ -15,6 +15,7 @@
 #include "vtkGenericOpenGLRenderWindow.h"
 
 #include "vtkCommand.h"
+#include "vtkLogger.h"
 #include "vtkObjectFactory.h"
 #include "vtkOpenGLError.h"
 #include "vtkOpenGLRenderWindow.h"
@@ -87,6 +88,16 @@ void vtkGenericOpenGLRenderWindow::SetBackLeftBuffer(unsigned int b)
 void vtkGenericOpenGLRenderWindow::SetBackRightBuffer(unsigned int b)
 {
   this->BackRightBuffer = b;
+}
+
+void vtkGenericOpenGLRenderWindow::SetDefaultFrameBufferId(unsigned int id)
+{
+  this->DefaultFrameBufferId = id;
+}
+
+void vtkGenericOpenGLRenderWindow::SetOwnContext(int val)
+{
+  this->OwnContext = val;
 }
 
 void vtkGenericOpenGLRenderWindow::Finalize()
@@ -176,10 +187,6 @@ int* vtkGenericOpenGLRenderWindow::GetScreenSize()
   return this->ScreenSize;
 }
 
-void vtkGenericOpenGLRenderWindow::Start()
-{
-}
-
 void vtkGenericOpenGLRenderWindow::HideCursor()
 {
 }
@@ -236,27 +243,21 @@ void vtkGenericOpenGLRenderWindow::Render()
 {
   if (this->ReadyForRendering)
   {
-    // Query current GL state and store them
-    this->SaveGLState();
+    this->MakeCurrent();
+    if (!this->IsCurrent())
+    {
+      vtkLogF(TRACE, "rendering skipped since `MakeCurrent` was not successful.");
+    }
+    else
+    {
+      // Query current GL state and store them
+      this->SaveGLState();
 
-    this->Superclass::Render();
+      this->Superclass::Render();
 
-    // Restore state to previous known value
-    this->RestoreGLState();
-  }
-}
-
-void vtkGenericOpenGLRenderWindow::SetIsPicking(vtkTypeBool isPicking)
-{
-  vtkDebugMacro(<< this->GetClassName() << " (" << this
-                << "): setting IsPicking to " << isPicking);
-  if (this->IsPicking != isPicking)
-  {
-    this->IsPicking = isPicking;
-    this->Modified();
-    this->InvokeEvent(this->IsPicking ? vtkCommand::StartPickEvent
-                                      : vtkCommand::EndPickEvent,
-                      nullptr);
+      // Restore state to previous known value
+      this->RestoreGLState();
+    }
   }
 }
 
@@ -270,4 +271,16 @@ void vtkGenericOpenGLRenderWindow::SetCurrentCursor(int cShape)
     this->Modified();
     this->InvokeEvent(vtkCommand::CursorChangedEvent, &cShape);
   }
+}
+
+int vtkGenericOpenGLRenderWindow::ReadPixels(
+  const vtkRecti& rect, int front, int glFormat, int glType, void* data, int right)
+{
+  if (this->ReadyForRendering)
+  {
+    return this->Superclass::ReadPixels(rect, front, glFormat, glType, data, right);
+  }
+
+  vtkWarningMacro("`ReadPixels` called before window is ready for rendering; ignoring.");
+  return VTK_ERROR;
 }

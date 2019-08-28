@@ -84,7 +84,7 @@ public:
 
   bool open(const char* file, int *ncfile)
   {
-    int mode = NC_NOWRITE | NC_64BIT_OFFSET | NC_NETCDF4 | NC_CLASSIC_MODEL;
+    int mode = NC_NOWRITE | NC_NETCDF4 | NC_CLASSIC_MODEL;
     int ncid;
     if (nc_err(nc_open(file, mode, &ncid)))
     {
@@ -581,7 +581,7 @@ int vtkNetCDFCAMReader::RequestData(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   vtkDebugMacro(<<"Reading NetCDF CAM file.");
-  this->SetProgress(0);
+  this->UpdateProgress(0);
   if(this->CurrentConnectivityFileName != nullptr &&
      strcmp(this->CurrentConnectivityFileName, this->ConnectivityFileName) != 0)
   {
@@ -715,7 +715,7 @@ int vtkNetCDFCAMReader::RequestData(
       points->SetPoint(static_cast<vtkIdType>(i), array[i], array[i+numFilePoints], numLevels - 1);
     }
   }
-  this->SetProgress(.25);  // educated guess for progress
+  this->UpdateProgress(.25);  // educated guess for progress
 
   // now read in the cell connectivity.  note that this is a periodic
   // domain and only the points on the left boundary are included in
@@ -896,7 +896,7 @@ int vtkNetCDFCAMReader::RequestData(
   points->Modified();
   points->Squeeze();
 
-  this->SetProgress(.5);  // educated guess for progress
+  this->UpdateProgress(.5);  // educated guess for progress
 
   // Collect the time step requested
   vtkInformationDoubleKey* timeKey =
@@ -942,7 +942,7 @@ int vtkNetCDFCAMReader::RequestData(
     {
       return 0;
     }
-    if(this->VerticalDimension != VERTICAL_DIMENSION_SINGLE_LAYER)
+    if (this->VerticalDimension != VERTICAL_DIMENSION_SINGLE_LAYER)
     { // check for a 3D field variable
       if (ndims != 3)
       {
@@ -975,7 +975,7 @@ int vtkNetCDFCAMReader::RequestData(
         continue;
       }
     }
-    else if(this->VerticalDimension == VERTICAL_DIMENSION_SINGLE_LAYER)
+    else
     { // check for a 2D field variable
       if (ndims != 2)
       {
@@ -1124,7 +1124,7 @@ int vtkNetCDFCAMReader::RequestData(
     output->GetPointData()->AddArray(levelPointData);
   }
 
-  this->SetProgress(.75);  // educated guess for progress
+  this->UpdateProgress(.75);  // educated guess for progress
 
   // now we actually create the cells
   if(this->VerticalDimension == VERTICAL_DIMENSION_SINGLE_LAYER ||

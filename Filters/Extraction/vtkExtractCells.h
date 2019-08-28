@@ -68,11 +68,13 @@ public:
    */
   void AddCellRange(vtkIdType from, vtkIdType to);
 
+  //@{
   /**
-   * Overloaded GetMTime() because of delegation to the internal
-   * vtIdLists.
+   * Another way to provide ids using a pointer to vtkIdType array.
    */
-  vtkMTimeType GetMTime() override;
+  void SetCellIds(const vtkIdType* ptr, vtkIdType numValues);
+  void AddCellIds(const vtkIdType* ptr, vtkIdType numValues);
+  //@}
 
 protected:
   int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *) override;
@@ -81,20 +83,20 @@ protected:
   vtkExtractCells();
   ~vtkExtractCells() override;
 
-private:
   void Copy(vtkDataSet *input, vtkUnstructuredGrid *output);
-  vtkIdType reMapPointIds(vtkDataSet *grid);
+  vtkIdType ReMapPointIds(vtkDataSet *grid);
 
   void CopyCellsDataSet(vtkDataSet *input,
                         vtkUnstructuredGrid *output);
   void CopyCellsUnstructuredGrid(vtkDataSet *input,
                                  vtkUnstructuredGrid *output);
 
-  vtkExtractCellsSTLCloak *CellList;
+  vtkExtractCellsSTLCloak *CellList = nullptr;
+  vtkIdType SubSetUGridCellArraySize = 0;
+  vtkIdType SubSetUGridFacesArraySize = 0;
+  bool InputIsUgrid = false;
 
-  vtkIdType SubSetUGridCellArraySize;
-  char InputIsUgrid;
-
+private:
   vtkExtractCells(const vtkExtractCells&) = delete;
   void operator=(const vtkExtractCells&) = delete;
 };

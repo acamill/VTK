@@ -1,5 +1,6 @@
 vtk_add_test_cxx(vtkFiltersCoreCxxTests tests
   TestAppendArcLength.cxx,NO_VALID
+  TestAppendDataSets.cxx,NO_VALID
   TestAppendFilter.cxx,NO_VALID
   TestAppendMolecule.cxx,NO_VALID
   TestAppendPolyData.cxx,NO_VALID
@@ -23,16 +24,20 @@ vtk_add_test_cxx(vtkFiltersCoreCxxTests tests
   TestDelaunay2DFindTriangle.cxx,NO_VALID
   TestDelaunay2DMeshes.cxx,NO_VALID
   TestDelaunay3D.cxx,NO_VALID
+  TestExplicitStructuredGridCrop.cxx
+  TestExplicitStructuredGridToUnstructuredGrid.cxx
   TestExecutionTimer.cxx,NO_VALID
   TestFeatureEdges.cxx,NO_VALID
   TestFlyingEdges.cxx
   TestGlyph3D.cxx
   TestHedgeHog.cxx,NO_VALID
+  TestImageDataToExplicitStructuredGrid.cxx
   TestImplicitPolyDataDistance.cxx
   TestMaskPoints.cxx,NO_VALID
   TestNamedComponents.cxx,NO_VALID
   TestPointDataToCellData.cxx,NO_VALID
   TestPolyDataConnectivityFilter.cxx,NO_VALID
+  TestPolyDataTangents.cxx
   TestProbeFilter.cxx,NO_VALID
   TestProbeFilterImageInput.cxx
   TestProbeFilterOutputAttributes.cxx,NO_VALID
@@ -52,6 +57,7 @@ vtk_add_test_cxx(vtkFiltersCoreCxxTests tests
   TestTriangleMeshPointNormals.cxx
   TestTubeFilter.cxx
   TestUnstructuredGridQuadricDecimation.cxx,NO_VALID
+  TestUnstructuredGridToExplicitStructuredGrid.cxx
   UnitTestMaskPoints.cxx,NO_VALID
   UnitTestMergeFilter.cxx,NO_VALID
   )

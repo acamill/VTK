@@ -207,7 +207,12 @@ int vtkCleanPolyData::RequestData(
 
   vtkPointData *outputPD = output->GetPointData();
   vtkCellData  *outputCD = output->GetCellData();
+  if (!this->PointMerging)
+  {
+    outputPD->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
+  }
   outputPD->CopyAllocate(inputPD);
+  outputCD->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
   outputCD->CopyAllocate(inputCD);
 
   // Celldata needs to be copied correctly. If a poly is converted to
@@ -275,6 +280,7 @@ int vtkCleanPolyData::RequestData(
     newLines = vtkCellArray::New();
     newLines->Allocate(inLines->GetSize());
     outLineData = vtkCellData::New();
+    outLineData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
     outLineData->CopyAllocate(inputCD);
     //
     vtkDebugMacro(<<"Starting Lines "<<inCellID);
@@ -302,9 +308,10 @@ int vtkCleanPolyData::RequestData(
           updatedPts[numNewPts++] = ptId;
         }
       }//for all cell points
-      if (numNewPts == 2)
+
+      if (numNewPts >= 2)
       {
-        // Cell is a proper line, always add
+        // Cell is a proper line or polyline, always add
         newId = newLines->InsertNextCell(numNewPts,updatedPts);
         outLineData->CopyData(inputCD, inCellID, newId);
         if (lineIDcounter!=newId)
@@ -343,6 +350,7 @@ int vtkCleanPolyData::RequestData(
     newPolys = vtkCellArray::New();
     newPolys->Allocate(inPolys->GetSize());
     outPolyData = vtkCellData::New();
+    outPolyData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
     outPolyData->CopyAllocate(inputCD);
 
     vtkDebugMacro(<<"Starting Polys "<<inCellID);
@@ -393,6 +401,7 @@ int vtkCleanPolyData::RequestData(
           newLines = vtkCellArray::New();
           newLines->Allocate(5);
           outLineData = vtkCellData::New();
+          outLineData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
           outLineData->CopyAllocate(inputCD);
         }
         newId = newLines->InsertNextCell(numNewPts,updatedPts);
@@ -432,6 +441,7 @@ int vtkCleanPolyData::RequestData(
     newStrips = vtkCellArray::New();
     newStrips->Allocate(inStrips->GetSize());
     outStrpData = vtkCellData::New();
+    outStrpData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
     outStrpData->CopyAllocate(inputCD);
 
     for (inStrips->InitTraversal(); inStrips->GetNextCell(npts,pts);
@@ -482,6 +492,7 @@ int vtkCleanPolyData::RequestData(
           newPolys = vtkCellArray::New();
           newPolys->Allocate(5);
           outPolyData = vtkCellData::New();
+          outPolyData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
           outPolyData->CopyAllocate(inputCD);
         }
         newId = newPolys->InsertNextCell(numNewPts,updatedPts);
@@ -500,6 +511,7 @@ int vtkCleanPolyData::RequestData(
           newLines = vtkCellArray::New();
           newLines->Allocate(5);
           outLineData = vtkCellData::New();
+          outLineData->CopyAllOn(vtkDataSetAttributes::COPYTUPLE);
           outLineData->CopyAllocate(inputCD);
         }
         newId = newLines->InsertNextCell(numNewPts,updatedPts);

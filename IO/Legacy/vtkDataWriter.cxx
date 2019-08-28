@@ -46,6 +46,9 @@
 #include "vtkObjectFactory.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
+#ifdef VTK_USE_SCALED_SOA_ARRAYS
+#include "vtkScaledSOADataArrayTemplate.h"
+#endif
 #include "vtkShortArray.h"
 #include "vtkSignedCharArray.h"
 #include "vtkSOADataArrayTemplate.h"
@@ -127,6 +130,10 @@ vtkDataWriter::~vtkDataWriter()
 // Open a vtk data file. Returns nullptr if error.
 ostream *vtkDataWriter::OpenVTKFile()
 {
+  // Save current locale settings and set standard one to
+  // avoid locale issues - for instance with the decimal separator.
+  this->CurrentLocale = std::locale::global(std::locale::classic());
+
   ostream *fptr;
 
   if ((!this->WriteToOutputString) && ( !this->FileName ))
@@ -1025,11 +1032,25 @@ T* GetArrayRawPointer(vtkAbstractArray* array, T* ptr, int isAOSArray)
   {
     return ptr;
   }
-  T* data = new T[array->GetNumberOfComponents()*array->GetNumberOfTuples()];
-  vtkSOADataArrayTemplate<T>* typedArray =
-    vtkSOADataArrayTemplate<T>::SafeDownCast(array);
-  typedArray->ExportToVoidPointer(data);
-  return data;
+  if (vtkSOADataArrayTemplate<T>* typedArray =
+      vtkSOADataArrayTemplate<T>::SafeDownCast(array))
+  {
+    T* data = new T[array->GetNumberOfComponents()*array->GetNumberOfTuples()];
+    typedArray->ExportToVoidPointer(data);
+    return data;
+  }
+#ifdef VTK_USE_SCALED_SOA_ARRAYS
+  else if (vtkScaledSOADataArrayTemplate<T>* typedScaleArray =
+           vtkScaledSOADataArrayTemplate<T>::SafeDownCast(array))
+  {
+    T* data = new T[array->GetNumberOfComponents()*array->GetNumberOfTuples()];
+    typedScaleArray->ExportToVoidPointer(data);
+    return data;
+  }
+#endif
+  vtkGenericWarningMacro("Do not know how to handle array type " << array->GetClassName()
+                         << " in vtkDataWriter");
+  return nullptr;
 }
 
 } // end anonymous namespace
@@ -1073,7 +1094,7 @@ int vtkDataWriter::WriteArray(ostream *fp, int dataType, vtkAbstractArray *data,
       else
       {
         unsigned char *cptr=
-          static_cast<vtkUnsignedCharArray *>(data)->GetPointer(0);
+          static_cast<vtkBitArray *>(data)->GetPointer(0);
         fp->write(reinterpret_cast<char *>(cptr),
                   (sizeof(unsigned char))*((num-1)/8+1));
 
@@ -1179,14 +1200,7 @@ int vtkDataWriter::WriteArray(ostream *fp, int dataType, vtkAbstractArray *data,
 
     case VTK_LONG:
     {
-#if VTK_SIZEOF_LONG == 4
-       // vtkDataReader assumes "int" to be of size 4
-       snprintf(str, sizeof(str), format, "int");
-#else // VTK_SIZEOF_LONG == 8
-       // vtkDataReader assumes "vtktypeint64" to be of size 8
-       snprintf(str, sizeof(str), format, "vtktypeint64");
-#endif
-       *fp << str;
+      snprintf (str, sizeof(str), format, "long"); *fp << str;
       long *s=GetArrayRawPointer(
         data, static_cast<vtkLongArray *>(data)->GetPointer(0), isAOSArray);
       vtkWriteDataArray(fp, s, this->FileType, "%ld ", num, numComp);
@@ -1199,14 +1213,7 @@ int vtkDataWriter::WriteArray(ostream *fp, int dataType, vtkAbstractArray *data,
 
     case VTK_UNSIGNED_LONG:
     {
-#if VTK_SIZEOF_LONG == 4
-       // vtkDataReader assumes "unsigned_int" to be of size 4
-       snprintf(str, sizeof(str), format, "unsigned_int");
-#else // VTK_SIZEOF_LONG == 8
-       // vtkDataReader assumes "vtktypeuint64" to be of size 8
-       snprintf(str, sizeof(str), format, "vtktypeuint64");
-#endif
-       *fp << str;
+      snprintf (str, sizeof(str), format, "unsigned_long"); *fp << str;
       unsigned long *s=GetArrayRawPointer(
         data, static_cast<vtkUnsignedLongArray *>(data)->GetPointer(0), isAOSArray);
       vtkWriteDataArray(fp, s, this->FileType, "%lu ", num, numComp);
@@ -2242,6 +2249,9 @@ void vtkDataWriter::WriteData()
 void vtkDataWriter::CloseVTKFile(ostream *fp)
 {
   vtkDebugMacro(<<"Closing vtk file\n");
+
+  // Restore the previous locale settings
+  std::locale::global(this->CurrentLocale);
 
   if ( fp != nullptr )
   {

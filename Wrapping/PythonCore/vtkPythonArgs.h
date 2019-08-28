@@ -30,6 +30,7 @@ resulting in wrapper code that is faster and more compact.
 
 #include "vtkWrappingPythonCoreModule.h" // For export macro
 #include "vtkPythonUtil.h"
+#include "PyVTKEnum.h"
 #include "PyVTKObject.h"
 #include "PyVTKTemplate.h"
 
@@ -501,6 +502,9 @@ public:
    * Build an enum value object of the specified type.
    */
   static PyObject *BuildEnumValue(int v, const char *enumname);
+  template<class T>
+  static PyObject *BuildEnumValue(T v, const char *enumname) {
+    return vtkPythonArgs::BuildEnumValue(static_cast<int>(v), enumname); }
 
   /**
    * Create a mangled string containing a memory address.
@@ -808,13 +812,6 @@ PyObject *vtkPythonArgs::BuildSpecialObject(const void *v,
 }
 
 inline
-PyObject *vtkPythonArgs::BuildEnumValue(int, const char *)
-{
-  /* not implemented */
-  return nullptr;
-}
-
-inline
 PyObject *vtkPythonArgs::BuildValue(const void *a)
 {
   if (a)
@@ -977,3 +974,4 @@ vtkPythonArgsTemplateMacro(
 #endif
 
 #endif
+// VTK-HeaderTest-Exclude: vtkPythonArgs.h

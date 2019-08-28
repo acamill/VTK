@@ -263,6 +263,8 @@ public:
     {
     case PolygonType::MATERIAL:
       return materialIndexToPolyData.find(materialIndex) == materialIndexToPolyData.end();
+    case PolygonType::NONE:
+    case PolygonType::TEXTURE:
     default:
       // for NONE imageURI is empty string
       return imageURIToPolyData.find(imageURI) == imageURIToPolyData.end();
@@ -281,6 +283,8 @@ public:
     case PolygonType::MATERIAL:
       materialIndexToPolyData[materialIndex] = polyData;
       break;
+    case PolygonType::NONE:
+    case PolygonType::TEXTURE:
     default:
       // for NONE imageURI is empty string
       imageURIToPolyData[imageURI] = polyData;
@@ -298,6 +302,8 @@ public:
     {
     case PolygonType::MATERIAL:
       return materialIndexToPolyData[materialIndex];
+    case PolygonType::NONE:
+    case PolygonType::TEXTURE:
     default:
       // for NONE imageURI is empty string
       return imageURIToPolyData[imageURI];
@@ -550,6 +556,7 @@ public:
             this->SetField(polyData, "transparency", &material.Transparency, 1);
             break;
           }
+        case PolygonType::NONE:
         default:
           // no fields to set
           break;
@@ -715,7 +722,7 @@ public:
     if (polyDataCount > 1)
     {
       vtkNew<vtkMultiBlockDataSet> b;
-      for (auto p: imageURIToPolyData)
+      for (const auto& p: imageURIToPolyData)
       {
         vtkPolyData* data = p.second;
         b->SetBlock(b->GetNumberOfBlocks(), data);
@@ -730,11 +737,11 @@ public:
     else if (polyDataCount == 1)
     {
       vtkPolyData* data = nullptr;
-      if (imageURIToPolyData.size() > 0)
+      if (!imageURIToPolyData.empty())
       {
         data = imageURIToPolyData.begin()->second;
       }
-      else if (materialIndexToPolyData.size() > 0)
+      else if (!materialIndexToPolyData.empty())
       {
         data = materialIndexToPolyData.begin()->second;
       }
