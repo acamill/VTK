@@ -146,6 +146,7 @@ macro(crosscompile target api abi out_build_dir)
       -DCMAKE_TOOLCHAIN_FILE:PATH=${_ANDROID_TOOLCHAIN}
       -DVTKCompileTools_DIR:PATH=${CMAKE_BINARY_DIR}/CompileTools
       -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
+      -DCMAKE_CXX_FLAGS="-DPNG_ARM_NEON_OPT=0"
       ${android_cmake_flags}
   )
   set(${out_build_dir} "${BUILD_DIR}/${_ANDROID_DIR}")
