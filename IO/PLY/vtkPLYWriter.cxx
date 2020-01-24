@@ -84,7 +84,7 @@ void vtkPLYWriter::WriteData()
   vtkPolyData *input = this->GetInput();
 
   vtkSmartPointer<vtkUnsignedCharArray> cellColors, pointColors;
-  vtkSmartPointer<vtkFloatArray> vertNormals;
+  vtkFloatArray* vertNormals = nullptr;
   PlyFile *ply;
   static const char *elemNames[] = { "vertex", "face" };
   static PlyProperty vertProps[] = {
@@ -155,11 +155,11 @@ void vtkPLYWriter::WriteData()
   pointColors = this->GetColors(numPts,input->GetPointData());
   cellColors = this->GetColors(numPolys,input->GetCellData());
 
-  vertNormals = input->GetPointData()->GetNormals();
+  vertNormals = vtkFloatArray::SafeDownCast(input->GetPointData()->GetNormals());
 
   bool pointAlpha = pointColors && pointColors->GetNumberOfComponents() == 4;
   bool cellAlpha = cellColors && cellColors->GetNumberOfComponents() == 4;
-  bool vertNormals = vertNormals && vertNormals->GetNumberOfComponents() == 3;
+  bool hasVertNormals = vertNormals && vertNormals->GetNumberOfComponents() == 3;
 
   // get texture coordinates, if any
   const float *textureCoords = this->GetTextureCoordinates(numPts,input->GetPointData());
@@ -169,7 +169,7 @@ void vtkPLYWriter::WriteData()
   vtkPLY::ply_describe_property (ply, "vertex", &vertProps[0]);
   vtkPLY::ply_describe_property (ply, "vertex", &vertProps[1]);
   vtkPLY::ply_describe_property (ply, "vertex", &vertProps[2]);
-  if ( vertNormals ){
+  if ( hasVertNormals ){
     vtkPLY::ply_describe_property (ply, "vertex", &vertProps[3]);
     vtkPLY::ply_describe_property (ply, "vertex", &vertProps[4]);
     vtkPLY::ply_describe_property (ply, "vertex", &vertProps[5]);
