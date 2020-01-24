@@ -58,6 +58,7 @@ vtkPLYWriter::~vtkPLYWriter()
 
 typedef struct _plyVertex {
   float x[3];             // the usual 3-space position of a vertex
+  float n[3];             // the usual 3-space normal of a vertex
   unsigned char red;
   unsigned char green;
   unsigned char blue;
@@ -82,6 +83,8 @@ void vtkPLYWriter::WriteData()
   vtkPolyData *input = this->GetInput();
 
   vtkSmartPointer<vtkUnsignedCharArray> cellColors, pointColors;
+  vtkFloatArray* vertNormals = nullptr;
+  
   PlyFile *ply;
   float version;
   static const char *elemNames[] = { "vertex", "face" };
@@ -92,6 +95,9 @@ void vtkPLYWriter::WriteData()
       0 },
     { "z", PLY_FLOAT, PLY_FLOAT,
       static_cast<int>(offsetof(plyVertex, x) + sizeof(float) + sizeof(float)), 0, 0, 0, 0 },
+    { "nx", PLY_FLOAT, PLY_FLOAT, static_cast<int>(offsetof(plyVertex, n)), 0, 0, 0, 0 },
+    { "ny", PLY_FLOAT, PLY_FLOAT, static_cast<int>(offsetof(plyVertex, n) + sizeof(float)), 0, 0, 0, 0 },
+    { "nz", PLY_FLOAT, PLY_FLOAT, static_cast<int>(offsetof(plyVertex, n) + sizeof(float) + sizeof(float)), 0, 0, 0, 0 },
     { "red", PLY_UCHAR, PLY_UCHAR, static_cast<int>(offsetof(plyVertex, red)), 0, 0, 0, 0 },
     { "green", PLY_UCHAR, PLY_UCHAR, static_cast<int>(offsetof(plyVertex, green)), 0, 0, 0, 0 },
     { "blue", PLY_UCHAR, PLY_UCHAR, static_cast<int>(offsetof(plyVertex, blue)), 0, 0, 0, 0 },
@@ -150,6 +156,10 @@ void vtkPLYWriter::WriteData()
     return;
   }
 
+  // get normals, if any
+  vertNormals = vtkFloatArray::SafeDownCast(input->GetPointData()->GetNormals());
+  bool hasVertNormals = vertNormals && vertNormals->GetNumberOfComponents() == 3;
+
   // compute colors, if any
   vtkIdType numPts = inPts->GetNumberOfPoints();
   vtkIdType numPolys = polys->GetNumberOfCells();
@@ -167,20 +177,25 @@ void vtkPLYWriter::WriteData()
   vtkPLY::ply_describe_property (ply, "vertex", &vertProps[0]);
   vtkPLY::ply_describe_property (ply, "vertex", &vertProps[1]);
   vtkPLY::ply_describe_property (ply, "vertex", &vertProps[2]);
-  if ( pointColors )
-  {
+  if ( hasVertNormals ){
     vtkPLY::ply_describe_property (ply, "vertex", &vertProps[3]);
     vtkPLY::ply_describe_property (ply, "vertex", &vertProps[4]);
     vtkPLY::ply_describe_property (ply, "vertex", &vertProps[5]);
+  }
+  if ( pointColors )
+  {
+    vtkPLY::ply_describe_property (ply, "vertex", &vertProps[6]);
+    vtkPLY::ply_describe_property (ply, "vertex", &vertProps[7]);
+    vtkPLY::ply_describe_property (ply, "vertex", &vertProps[8]);
     if (pointAlpha)
     {
-      vtkPLY::ply_describe_property(ply, "vertex", &vertProps[6]);
+      vtkPLY::ply_describe_property(ply, "vertex", &vertProps[9]);
     }
   }
   if ( textureCoords )
   {
-    vtkPLY::ply_describe_property(ply, "vertex", &vertProps[7]);
-    vtkPLY::ply_describe_property(ply, "vertex", &vertProps[8]);
+    vtkPLY::ply_describe_property(ply, "vertex", &vertProps[10]);
+    vtkPLY::ply_describe_property(ply, "vertex", &vertProps[11]);
   }
 
   vtkPLY::ply_element_count (ply, "face", numPolys);
@@ -216,6 +231,12 @@ void vtkPLYWriter::WriteData()
     vert.x[0] = static_cast<float>(dpoint[0]);
     vert.x[1] = static_cast<float>(dpoint[1]);
     vert.x[2] = static_cast<float>(dpoint[2]);
+    if ( hasVertNormals )
+    {
+      vert.n[0] = vertNormals->GetValue(idx + 0);
+      vert.n[1] = vertNormals->GetValue(idx + 1);
+      vert.n[2] = vertNormals->GetValue(idx + 2);
+    }
     if ( pointColors )
     {
       idx = pointAlpha ? 4 * i : 3 * i;
