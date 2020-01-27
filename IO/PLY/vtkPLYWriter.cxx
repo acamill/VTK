@@ -233,9 +233,11 @@ void vtkPLYWriter::WriteData()
     vert.x[2] = static_cast<float>(dpoint[2]);
     if ( hasVertNormals )
     {
-      vert.n[0] = vertNormals->GetValue(idx + 0);
-      vert.n[1] = vertNormals->GetValue(idx + 1);
-      vert.n[2] = vertNormals->GetValue(idx + 2);
+      double normal[3];
+      vertNormals->GetTuple(i, normal);
+      vert.n[0] = static_cast<float>(normal[0]);
+      vert.n[1] = static_cast<float>(normal[1]);
+      vert.n[2] = static_cast<float>(normal[2]);
     }
     if ( pointColors )
     {
