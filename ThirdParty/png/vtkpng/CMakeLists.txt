@@ -1,4 +1,5 @@
 # source files for png
+add_definitions(-DPNG_ARM_NEON_OPT=0)
 set(sources
   png.c
   pngerror.c
