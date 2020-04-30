@@ -18,15 +18,13 @@ set(IOS_DEVICE_ARCHITECTURES "arm64"
 list(REMOVE_DUPLICATES IOS_SIMULATOR_ARCHITECTURES)
 list(REMOVE_DUPLICATES IOS_DEVICE_ARCHITECTURES)
 
-# Only set the number to length if its there
-if(IOS_SIMULATOR_ARCHITECTURES)
-  # NOTE: OFF and "" still result in length 1 when using LENGTH
+# Check that at least one architecture is defined
+set(SIMULATOR_ARCHS_NBR 0)
+if( $IOS_SIMULATOR_ARCHITECTURES )
   list(LENGTH IOS_SIMULATOR_ARCHITECTURES SIMULATOR_ARCHS_NBR)
-else()
-  set(SIMULATOR_ARCHS_NBR 0)
 endif()
 list(LENGTH IOS_DEVICE_ARCHITECTURES DEVICE_ARCHS_NBR)
-# Check that at least one architure is defined
+# Check that at least one architecture is defined
 math(EXPR IOS_ARCHS_NBR ${DEVICE_ARCHS_NBR}+${SIMULATOR_ARCHS_NBR})
 if(NOT ${IOS_ARCHS_NBR})
   message(FATAL_ERROR "No IOS simulator or device architecture to compile for. Populate IOS_DEVICE_ARCHITECTURES and/or IOS_SIMULATOR_ARCHITECTURES.")
@@ -119,7 +117,9 @@ option(Module_vtkInteractionWidgets "Include InteractionWidgets module" OFF)
 option(Module_vtkIOXML "Include IO/XML Module" OFF)
 option(Module_vtkDICOM "Turn on or off this module" OFF)
 option(Module_vtkFiltersCore "Turn on or off this module" OFF)
+option(Module_vtkFiltersHybrid "Turn on or off this module" OFF)
 option(Module_vtkFiltersModeling "Turn on or off this module" OFF)
+option(Module_vtkFiltersPoints "Turn on or off this module" OFF)
 option(Module_vtkFiltersSources "Turn on or off this module" OFF)
 option(Module_vtkFiltersGeometry "Turn on or off this module" OFF)
 option(Module_vtkFiltersPoints "Turn on or off this module" OFF)
@@ -159,7 +159,9 @@ set(ios_cmake_flags
   -DModule_vtkIOXML:BOOL=${Module_vtkIOXML}
   -DModule_vtkDICOM:BOOL=${Module_vtkDICOM}
   -DModule_vtkFiltersCore:BOOL=${Module_vtkFiltersCore}
+  -DModule_vtkFiltersHybrid:BOOL=${Module_vtkFiltersHybrid}
   -DModule_vtkFiltersModeling:BOOL=${Module_vtkFiltersModeling}
+  -DModule_vtkFiltersPoints:BOOL=${Module_vtkFiltersPoints}
   -DModule_vtkFiltersSources:BOOL=${Module_vtkFiltersSources}
   -DModule_vtkFiltersGeometry:BOOL=${Module_vtkFiltersGeometry}
   -DModule_vtkFiltersPoints:BOOL=${Module_vtkFiltersPoints}

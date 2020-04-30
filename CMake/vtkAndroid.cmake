@@ -112,6 +112,7 @@ set(android_cmake_flags
   -DModule_vtkImagingCore:BOOL=ON
   -DModule_vtkInteractionStyle:BOOL=ON
   -DModule_vtkParallelCore:BOOL=ON
+  -DModule_vtkFiltersPoints:BOOL=ON
   -DModule_vtkRenderingCore:BOOL=ON
   -DModule_vtkRenderingFreeType:BOOL=ON
   -DModule_vtkTestingCore:BOOL=ON
