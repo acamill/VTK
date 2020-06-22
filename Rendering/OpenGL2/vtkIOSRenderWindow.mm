@@ -26,6 +26,8 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include "vtk_glew.h"
 
+#import <GLKit/GLKit.h>
+
 vtkStandardNewMacro(vtkIOSRenderWindow);
 
 //----------------------------------------------------------------------------
@@ -139,22 +141,22 @@ void vtkIOSRenderWindow::SetWindowName(const char* _arg)
 //----------------------------------------------------------------------------
 bool vtkIOSRenderWindow::InitializeFromCurrentContext()
 {
-  // NSOpenGLContext *currentContext = [NSOpenGLContext currentContext];
-  // if (currentContext != NULL)
-  //   {
-  //   UIView *currentView = [currentContext view];
-  //   if (currentView != NULL)
-  //     {
-  //     UIWindow *window = [currentView window];
-  //     this->SetWindowId(currentView);
-  //     this->SetRootWindow(window);
-  //     this->SetContextId((void*)currentContext);
-  //     this->OpenGLInit();
-  //     this->OwnContext = 0;
-  //     return true;
-  //     }
-  //   }
-  return false;
+  EAGLContext *currentContext = [EAGLContext currentContext];
+  if (currentContext != NULL)
+    {
+//     UIView *currentView = [currentContext view];
+//     if (currentView != NULL)
+//       {
+//       UIWindow *window = [currentView window];
+//       this->SetWindowId(currentView);
+//       this->SetRootWindow(window);
+      this->SetContextId((void*)currentContext);
+      this->OpenGLInit();
+      this->OwnContext = 0;
+      return this->Superclass::InitializeFromCurrentContext();
+//       }
+    }
+//  return false;
 }
 
 //----------------------------------------------------------------------------
@@ -176,10 +178,10 @@ void vtkIOSRenderWindow::Start()
 //----------------------------------------------------------------------------
 void vtkIOSRenderWindow::MakeCurrent()
 {
-  // if (this->GetContextId())
-  //   {
-  //   [(NSOpenGLContext*)this->GetContextId() makeCurrentContext];
-  //   }
+   if (this->GetContextId())
+   {
+     [EAGLContext setCurrentContext:(EAGLContext*)this->GetContextId()];
+   }
 }
 
 // ----------------------------------------------------------------------------
@@ -187,7 +189,11 @@ void vtkIOSRenderWindow::MakeCurrent()
 // Tells if this window is the current OpenGL context for the calling thread.
 bool vtkIOSRenderWindow::IsCurrent()
 {
-  return true;
+  if (this->GetContextId())
+  {
+    return [EAGLContext currentContext] == (EAGLContext*)this->GetContextId();
+  }
+  return false;
 }
 
 //----------------------------------------------------------------------------
