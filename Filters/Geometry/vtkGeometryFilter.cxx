@@ -12,6 +12,10 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+
+// Hide VTK_DEPRECATED_IN_9_0_0() warnings for this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkGeometryFilter.h"
 
 #include "vtkCellArray.h"
@@ -41,7 +45,7 @@
 vtkStandardNewMacro(vtkGeometryFilter);
 vtkCxxSetObjectMacro(vtkGeometryFilter, Locator, vtkIncrementalPointLocator);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Construct with all types of clipping turned off.
 vtkGeometryFilter::vtkGeometryFilter()
 {
@@ -67,13 +71,13 @@ vtkGeometryFilter::vtkGeometryFilter()
   this->OutputPointsPrecision = DEFAULT_PRECISION;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkGeometryFilter::~vtkGeometryFilter()
 {
   this->SetLocator(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Specify a (xmin,xmax, ymin,ymax, zmin,zmax) bounding box to clip data.
 void vtkGeometryFilter::SetExtent(
   double xMin, double xMax, double yMin, double yMax, double zMin, double zMax)
@@ -90,7 +94,7 @@ void vtkGeometryFilter::SetExtent(
   this->SetExtent(extent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Specify a (xmin,xmax, ymin,ymax, zmin,zmax) bounding box to clip data.
 void vtkGeometryFilter::SetExtent(double extent[6])
 {
@@ -127,7 +131,7 @@ int vtkGeometryFilter::GetOutputPointsPrecision() const
   return this->OutputPointsPrecision;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkGeometryFilter::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -390,7 +394,7 @@ int vtkGeometryFilter::RequestData(vtkInformation* vtkNotUsed(request),
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Specify a spatial locator for merging points. By
 // default an instance of vtkMergePoints is used.
 void vtkGeometryFilter::CreateDefaultLocator()
@@ -403,14 +407,14 @@ void vtkGeometryFilter::CreateDefaultLocator()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkGeometryFilter::FillInputPortInformation(int, vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkDataSet");
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGeometryFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -443,7 +447,7 @@ void vtkGeometryFilter::PrintSelf(ostream& os, vtkIndent indent)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkMTimeType vtkGeometryFilter::GetMTime()
 {
   vtkMTimeType mTime = this->Superclass::GetMTime();
@@ -457,7 +461,7 @@ vtkMTimeType vtkGeometryFilter::GetMTime()
   return mTime;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGeometryFilter::PolyDataExecute(vtkDataSet* dataSetInput, vtkPolyData* output)
 {
   vtkPolyData* input = static_cast<vtkPolyData*>(dataSetInput);
@@ -580,7 +584,7 @@ void vtkGeometryFilter::PolyDataExecute(vtkDataSet* dataSetInput, vtkPolyData* o
                 << output->GetNumberOfCells() << " cells.");
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGeometryFilter::UnstructuredGridExecute(vtkDataSet* dataSetInput, vtkPolyData* output)
 {
   vtkUnstructuredGrid* input = static_cast<vtkUnstructuredGrid*>(dataSetInput);
@@ -1081,7 +1085,7 @@ void vtkGeometryFilter::UnstructuredGridExecute(vtkDataSet* dataSetInput, vtkPol
   delete[] cellVis;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkGeometryFilter::StructuredGridExecute(
   vtkDataSet* dataSetInput, vtkPolyData* output, vtkInformation*)
 {
@@ -1265,7 +1269,7 @@ void vtkGeometryFilter::StructuredGridExecute(
   pts->Delete();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkGeometryFilter::RequestUpdateExtent(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {

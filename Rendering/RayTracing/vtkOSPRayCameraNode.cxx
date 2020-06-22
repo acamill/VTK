@@ -22,7 +22,6 @@
 #include "vtkObjectFactory.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderer.h"
-#include "vtkViewNodeCollection.h"
 #include "vtkWindow.h"
 
 #include "RTWrapper/RTWrapper.h"
@@ -30,19 +29,19 @@
 //============================================================================
 vtkStandardNewMacro(vtkOSPRayCameraNode);
 
-//----------------------------------------------------------------------------
-vtkOSPRayCameraNode::vtkOSPRayCameraNode() {}
+//------------------------------------------------------------------------------
+vtkOSPRayCameraNode::vtkOSPRayCameraNode() = default;
 
-//----------------------------------------------------------------------------
-vtkOSPRayCameraNode::~vtkOSPRayCameraNode() {}
+//------------------------------------------------------------------------------
+vtkOSPRayCameraNode::~vtkOSPRayCameraNode() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayCameraNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayCameraNode::Render(bool prepass)
 {
   if (prepass)

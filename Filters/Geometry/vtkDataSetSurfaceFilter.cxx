@@ -12,6 +12,10 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+
+// Hide VTK_DEPRECATED_IN_9_0_0() warnings for this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkDataSetSurfaceFilter.h"
 
 #include "vtkBezierQuadrilateral.h"
@@ -111,7 +115,7 @@ protected:
 
 vtkObjectFactoryNewMacro(vtkDataSetSurfaceFilter);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataSetSurfaceFilter::vtkDataSetSurfaceFilter()
 {
   this->QuadHash = nullptr;
@@ -140,14 +144,14 @@ vtkDataSetSurfaceFilter::vtkDataSetSurfaceFilter()
   this->NonlinearSubdivisionLevel = 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataSetSurfaceFilter::~vtkDataSetSurfaceFilter()
 {
   this->SetOriginalCellIdsName(nullptr);
   this->SetOriginalPointIdsName(nullptr);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataSetSurfaceFilter::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -285,7 +289,7 @@ int vtkDataSetSurfaceFilter::RequestData(vtkInformation* vtkNotUsed(request),
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::EstimateStructuredDataArraySizes(
   vtkIdType* ext, vtkIdType* wholeExt, vtkIdType& numPoints, vtkIdType& numCells)
 {
@@ -333,7 +337,7 @@ void vtkDataSetSurfaceFilter::EstimateStructuredDataArraySizes(
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataSetSurfaceFilter::UniformGridExecute(
   vtkDataSet* input, vtkPolyData* output, vtkIdType* ext, vtkIdType* wholeExt, bool extractface[6])
 {
@@ -423,7 +427,7 @@ int vtkDataSetSurfaceFilter::UniformGridExecute(
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // It is a pain that structured data sets do not share a common super class
 // other than data set, and data set does not allow access to extent!
 int vtkDataSetSurfaceFilter::StructuredExecute(
@@ -631,7 +635,7 @@ int vtkDataSetSurfaceFilter::StructuredExecute(
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::ExecuteFaceStrips(vtkDataSet* input, vtkPolyData* output, int maxFlag,
   vtkIdType* ext, int aAxis, int bAxis, int cAxis, vtkIdType* wholeExt)
 {
@@ -806,7 +810,7 @@ void vtkDataSetSurfaceFilter::ExecuteFaceStrips(vtkDataSet* input, vtkPolyData* 
   delete[] stripArray;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::ExecuteFaceQuads(vtkDataSet* input, vtkPolyData* output, int maxFlag,
   vtkIdType* ext, int aAxis, int bAxis, int cAxis, vtkIdType* wholeExt, bool checkVisibility)
 {
@@ -933,7 +937,7 @@ void vtkDataSetSurfaceFilter::ExecuteFaceQuads(vtkDataSet* input, vtkPolyData* o
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::ExecuteFaceQuads(vtkDataSet* input, vtkPolyData* output, int maxFlag,
   vtkIdType* ext, int aAxis, int bAxis, int cAxis, vtkIdType* wholeExt)
 {
@@ -1054,7 +1058,7 @@ void vtkDataSetSurfaceFilter::ExecuteFaceQuads(vtkDataSet* input, vtkPolyData* o
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataSetSurfaceFilter::StructuredWithBlankingExecute(
   vtkStructuredGrid* input, vtkPolyData* output)
 {
@@ -1229,7 +1233,7 @@ int vtkDataSetSurfaceFilter::StructuredWithBlankingExecute(
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataSetSurfaceFilter::DataSetExecute(vtkDataSet* input, vtkPolyData* output)
 {
   vtkIdType cellId, newCellId;
@@ -1385,7 +1389,7 @@ int vtkDataSetSurfaceFilter::DataSetExecute(vtkDataSet* input, vtkPolyData* outp
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataSetSurfaceFilter::RequestUpdateExtent(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -1420,14 +1424,14 @@ int vtkDataSetSurfaceFilter::RequestUpdateExtent(vtkInformation* vtkNotUsed(requ
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataSetSurfaceFilter::FillInputPortInformation(int, vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkDataSet");
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -1455,7 +1459,7 @@ void vtkDataSetSurfaceFilter::PrintSelf(ostream& os, vtkIndent indent)
 // Tris are now degenerate quads so we only need one hash table.
 // We might want to change the method names from QuadHash to just Hash.
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* dataSetInput, vtkPolyData* output)
 {
   vtkUnstructuredGridBase* input = vtkUnstructuredGridBase::SafeDownCast(dataSetInput);
@@ -2276,7 +2280,7 @@ int vtkDataSetSurfaceFilter::UnstructuredGridExecute(vtkDataSet* dataSetInput, v
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::InitializeQuadHash(vtkIdType numPoints)
 {
   vtkIdType i;
@@ -2300,7 +2304,7 @@ void vtkDataSetSurfaceFilter::InitializeQuadHash(vtkIdType numPoints)
   this->EdgeMap = new vtkEdgeInterpolationMap;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::DeleteQuadHash()
 {
   vtkIdType i;
@@ -2321,7 +2325,7 @@ void vtkDataSetSurfaceFilter::DeleteQuadHash()
   this->EdgeMap = nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::InsertQuadInHash(
   vtkIdType a, vtkIdType b, vtkIdType c, vtkIdType d, vtkIdType sourceId)
 {
@@ -2389,7 +2393,7 @@ void vtkDataSetSurfaceFilter::InsertQuadInHash(
   *end = quad;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::InsertTriInHash(
   vtkIdType a, vtkIdType b, vtkIdType c, vtkIdType sourceId, vtkIdType vtkNotUsed(faceId) /*= -1*/)
 {
@@ -2450,7 +2454,7 @@ void vtkDataSetSurfaceFilter::InsertTriInHash(
 //        the start index of the polygon in the array
 //        the end index of the polygon in the array
 //        the cellId of the polygon
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::InsertPolygonInHash(
   const vtkIdType* ids, int numPts, vtkIdType sourceId)
 {
@@ -2552,7 +2556,7 @@ void vtkDataSetSurfaceFilter::InsertPolygonInHash(
   delete[] tab;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::InitFastGeomQuadAllocation(vtkIdType numberOfCells)
 {
   int idx;
@@ -2585,7 +2589,7 @@ void vtkDataSetSurfaceFilter::InitFastGeomQuadAllocation(vtkIdType numberOfCells
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::DeleteAllFastGeomQuads()
 {
   for (int idx = 0; idx < this->NumberOfFastGeomQuadArrays; ++idx)
@@ -2601,7 +2605,7 @@ void vtkDataSetSurfaceFilter::DeleteAllFastGeomQuads()
   this->NextQuadIndex = 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkFastGeomQuad* vtkDataSetSurfaceFilter::NewFastGeomQuad(int numPts)
 {
   if (this->FastGeomQuadArrayLength == 0)
@@ -2667,14 +2671,14 @@ vtkFastGeomQuad* vtkDataSetSurfaceFilter::NewFastGeomQuad(int numPts)
   return q;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::InitQuadHashTraversal()
 {
   this->QuadHashTraversalIndex = 0;
   this->QuadHashTraversal = this->QuadHash[0];
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkFastGeomQuad* vtkDataSetSurfaceFilter::GetNextVisibleQuadFromHash()
 {
   vtkFastGeomQuad* quad;
@@ -2707,7 +2711,7 @@ vtkFastGeomQuad* vtkDataSetSurfaceFilter::GetNextVisibleQuadFromHash()
   return quad;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkDataSetSurfaceFilter::GetOutputPointId(
   vtkIdType inPtId, vtkDataSet* input, vtkPoints* outPts, vtkPointData* outPD)
 {
@@ -2725,7 +2729,7 @@ vtkIdType vtkDataSetSurfaceFilter::GetOutputPointId(
   return outPtId;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkIdType vtkDataSetSurfaceFilter::GetInterpolatedPointId(vtkIdType edgePtA, vtkIdType edgePtB,
   vtkDataSet* input, vtkCell* cell, double pcoords[3], vtkPoints* outPts, vtkPointData* outPD)
 {
@@ -2747,7 +2751,7 @@ vtkIdType vtkDataSetSurfaceFilter::GetInterpolatedPointId(vtkIdType edgePtA, vtk
   return outPtId;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::RecordOrigCellId(vtkIdType destIndex, vtkIdType originalId)
 {
   if (this->OriginalCellIds != nullptr)
@@ -2756,7 +2760,7 @@ void vtkDataSetSurfaceFilter::RecordOrigCellId(vtkIdType destIndex, vtkIdType or
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::RecordOrigCellId(vtkIdType destIndex, vtkFastGeomQuad* quad)
 {
   if (this->OriginalCellIds != nullptr)
@@ -2765,7 +2769,7 @@ void vtkDataSetSurfaceFilter::RecordOrigCellId(vtkIdType destIndex, vtkFastGeomQ
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDataSetSurfaceFilter::RecordOrigPointId(vtkIdType destIndex, vtkIdType originalId)
 {
   if (this->OriginalPointIds != nullptr)

@@ -75,7 +75,7 @@ public:
    *
    * @sa vtkDecimatePro::SetTargetReduction
    */
-  virtual void SetLODDistanceAndTargetReduction(
+  void SetLODDistanceAndTargetReduction(
     vtkIdType index, float distance, float targetReduction) override;
   //@}
 
@@ -106,7 +106,7 @@ protected:
   /**
    * Build data structures associated with
    */
-  virtual void RebuildStructures(vtkOpenGLGlyph3DMapperSubArray* entry, vtkIdType numPts,
+  virtual void RebuildStructures(vtkOpenGLGlyph3DMapperSubArray* subarray, vtkIdType numPts,
     vtkActor* actor, vtkDataSet* dataset, vtkBitArray* maskArray);
 
   vtkMTimeType BlockMTime; // Last time BlockAttributes was modified.

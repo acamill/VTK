@@ -29,7 +29,7 @@
 
 // vtkStandardNewMacro(vtkHigherOrderInterpolation);
 
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 static constexpr double hexCorner[8][3] = { { 0., 0., 0. }, { +1., 0., 0. }, { +1., +1., 0. },
   { 0., +1., 0. }, { 0., 0., +1. }, { +1., 0., +1. }, { +1., +1., +1. }, { 0., +1., +1. } };
 
@@ -62,7 +62,7 @@ static constexpr int hexFaceEdges[6][4] = {
   { 0, 1, 2, 3 },
   { 4, 5, 6, 7 },
 };
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 static constexpr double wedgeCorner[6][3] = { { 0., 0., 0. }, { +1., 0., 0. }, { 0., +1., 0. },
   { 0., 0., +1. }, { +1., 0., +1. }, { 0., +1., +1. } };
 
@@ -98,9 +98,9 @@ static constexpr int wedgeFaceEdges[5][5] = {
   { 1, 8, 4, 7, 0 },
   { 2, 8, 5, 6, 0 },
 };
-// -----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
-vtkHigherOrderInterpolation::vtkHigherOrderInterpolation() {}
+vtkHigherOrderInterpolation::vtkHigherOrderInterpolation() = default;
 
 vtkHigherOrderInterpolation::~vtkHigherOrderInterpolation() = default;
 
@@ -184,7 +184,7 @@ int vtkHigherOrderInterpolation::Tensor2ShapeFunctions(const int order[2], const
 
 // Quadrilateral shape-function derivatives
 int vtkHigherOrderInterpolation::Tensor2ShapeDerivatives(const int order[2],
-  const double pcoords[2], double* deriv,
+  const double pcoords[3], double* deriv,
   void (*function_evaluate_shape_and_gradient)(int, double, double*, double*))
 {
   std::array<std::vector<double>, 2> ll;
@@ -1044,14 +1044,13 @@ void vtkHigherOrderInterpolation::AppendCurveCollocationPoints(
     pts = vtkSmartPointer<vtkPoints>::New();
   }
 
-  vtkIdType existing = pts->GetNumberOfPoints();
   vtkIdType np = order[0] + 1;
-  pts->SetNumberOfPoints(existing + np);
+  pts->SetNumberOfPoints(np);
   vtkVector3d e0(0., 0., 0.);
   vtkVector3d e1(+1., 0., 0.);
 
   // Insert corner points
-  vtkIdType sn = existing;
+  vtkIdType sn = 0;
   pts->SetPoint(sn++, e0.GetData());
   pts->SetPoint(sn++, e1.GetData());
 
@@ -1072,11 +1071,10 @@ void vtkHigherOrderInterpolation::AppendQuadrilateralCollocationPoints(
     pts = vtkSmartPointer<vtkPoints>::New();
   }
 
-  vtkIdType existing = pts->GetNumberOfPoints();
   vtkIdType np = (order[0] + 1) * (order[1] + 1);
-  pts->SetNumberOfPoints(existing + np);
+  pts->SetNumberOfPoints(np);
   // Insert corner points
-  vtkIdType sn = existing;
+  vtkIdType sn = 0;
   for (int ii = 0; ii < 4; ++ii)
   {
     vtkVector3d cc(hexCorner[ii]);
@@ -1118,11 +1116,10 @@ void vtkHigherOrderInterpolation::AppendHexahedronCollocationPoints(
     pts = vtkSmartPointer<vtkPoints>::New();
   }
 
-  vtkIdType existing = pts->GetNumberOfPoints();
   vtkIdType np = (order[0] + 1) * (order[1] + 1) * (order[2] + 1);
-  pts->SetNumberOfPoints(existing + np);
+  pts->SetNumberOfPoints(np);
   // Insert corner points
-  vtkIdType sn = existing;
+  vtkIdType sn = 0;
   for (int ii = 0; ii < 8; ++ii)
   {
     pts->SetPoint(sn++, hexCorner[ii]);
@@ -1182,12 +1179,11 @@ void vtkHigherOrderInterpolation::AppendWedgeCollocationPoints(
     pts = vtkSmartPointer<vtkPoints>::New();
   }
 
-  vtkIdType existing = pts->GetNumberOfPoints();
   vtkIdType np =
     (order[0] + 1) * (order[1] + 2) * (order[2] + 1) / 2; // NB: assert(order[0] == order[1])
-  pts->SetNumberOfPoints(existing + np);
+  pts->SetNumberOfPoints(np);
   // Insert corner points
-  vtkIdType sn = existing;
+  vtkIdType sn = 0;
   for (int ii = 0; ii < 6; ++ii)
   {
     pts->SetPoint(sn++, wedgeCorner[ii]);

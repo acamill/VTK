@@ -19,6 +19,8 @@ PURPOSE.  See the above copyright notice for more information.
 #import "vtkIOSRenderWindow.h"
 #import "vtkIdList.h"
 #import "vtkObjectFactory.h"
+#import "vtkOpenGLFramebufferObject.h"
+#import "vtkOpenGLState.h"
 #import "vtkRenderWindowInteractor.h"
 #import "vtkRendererCollection.h"
 
@@ -40,12 +42,27 @@ vtkIOSRenderWindow::vtkIOSRenderWindow()
   this->ForceMakeCurrent = 0;
   this->OnScreenInitialized = 0;
   this->OffScreenInitialized = 0;
-  // it seems that LEFT/RIGHT cause issues on IOS so we just use
-  // generic BACK/FRONT
-  this->BackLeftBuffer = static_cast<unsigned int>(GL_BACK);
-  this->BackRightBuffer = static_cast<unsigned int>(GL_BACK);
-  this->FrontLeftBuffer = static_cast<unsigned int>(GL_FRONT);
-  this->FrontRightBuffer = static_cast<unsigned int>(GL_FRONT);
+}
+
+void vtkIOSRenderWindow::BlitDisplayBuffersToHardware()
+{
+  auto ostate = this->GetState();
+  ostate->PushFramebufferBindings();
+  this->DisplayFramebuffer->Bind(GL_READ_FRAMEBUFFER);
+  this->GetState()->vtkglViewport(0, 0, this->Size[0], this->Size[1]);
+  this->GetState()->vtkglScissor(0, 0, this->Size[0], this->Size[1]);
+
+  // recall Blit upper right corner is exclusive of the range
+  const int srcExtents[4] = { 0, this->Size[0], 0, this->Size[1] };
+
+  this->GetState()->vtkglBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+  this->DisplayFramebuffer->ActivateReadBuffer(0);
+  this->GetState()->vtkglDrawBuffer(this->DoubleBuffer ? GL_BACK : GL_FRONT);
+  vtkOpenGLFramebufferObject::Blit(
+    srcExtents, srcExtents, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+  this->GetState()->PopFramebufferBindings();
 }
 
 //----------------------------------------------------------------------------
@@ -197,6 +214,7 @@ bool vtkIOSRenderWindow::IsCurrent()
 }
 
 //----------------------------------------------------------------------------
+#ifndef VTK_LEGACY_REMOVE
 bool vtkIOSRenderWindow::IsDrawable()
 {
   // you must initialize it first
@@ -205,6 +223,7 @@ bool vtkIOSRenderWindow::IsDrawable()
 
   return true;
 }
+#endif
 
 //----------------------------------------------------------------------------
 void vtkIOSRenderWindow::UpdateContext() {}

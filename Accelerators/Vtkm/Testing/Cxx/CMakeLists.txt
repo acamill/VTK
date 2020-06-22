@@ -52,6 +52,11 @@ if (TARGET vtkm::cuda)
   # We are disabling all warnings as nvlink has no known way to suppress
   # individual warning types.
   string(APPEND CMAKE_CUDA_FLAGS " -Xnvlink -w")
+else()
+  # TestVTKMImplicitDataArray is not designed to work with the cuda backend.
+  vtk_add_test_cxx(vtkAcceleratorsVTKmCxxTests1 tests1
+    TestVTKMImplicitDataArray.cxx
+    )
 endif()
 
 

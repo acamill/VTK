@@ -12,10 +12,15 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+
+// Hide VTK_DEPRECATED_IN_9_0_0() warnings for this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkCell3D.h"
 
 #include "vtkCellArray.h"
 #include "vtkCellData.h"
+#include "vtkDataArrayRange.h"
 #include "vtkDoubleArray.h"
 #include "vtkMath.h"
 #include "vtkOrderedTriangulator.h"
@@ -24,6 +29,8 @@
 #include "vtkPoints.h"
 #include "vtkPolygon.h"
 #include "vtkTetra.h"
+
+#include <vector>
 
 vtkCell3D::vtkCell3D()
 {
@@ -74,6 +81,48 @@ bool vtkCell3D::IsInsideOut()
   return signedDistanceToCentroid > 0.0;
 }
 
+//----------------------------------------------------------------------------
+void vtkCell3D::Inflate(double dist)
+{
+  // The strategy is the following:
+  // - For each point, get points from its one-ring
+  // - Displace each of theses points following its halfedge direction,
+  //   by a distance of dist.
+  std::vector<double> buf(3 * this->Points->GetNumberOfPoints(), 0.0);
+  double sign = this->IsInsideOut() ? -1.0 : 1.0;
+  double p[3];
+  vtkIdType pointId = 0;
+  auto pointRange = vtk::DataArrayTupleRange<3>(this->Points->GetData());
+  using ConstTupleRef = typename decltype(pointRange)::ConstTupleReferenceType;
+  for (ConstTupleRef point : pointRange)
+  {
+    const vtkIdType* ringIds;
+    vtkIdType ringSize = this->GetPointToOneRingPoints(pointId, ringIds);
+    for (vtkIdType id = 0; id < ringSize; ++id)
+    {
+      auto it = point->begin();
+      this->Points->GetPoint(ringIds[id], p);
+      double v[3] = { p[0] - *(it++), p[1] - *(it++), p[2] - *(it++) };
+      vtkMath::Normalize(v);
+      buf[3 * pointId] -= sign * v[0] * dist;
+      buf[3 * pointId + 1] -= sign * v[1] * dist;
+      buf[3 * pointId + 2] -= sign * v[2] * dist;
+    }
+    ++pointId;
+  }
+  auto it = buf.begin();
+  using TupleRef = typename decltype(pointRange)::TupleReferenceType;
+  using CompRef = typename decltype(pointRange)::ComponentReferenceType;
+  for (TupleRef point : pointRange)
+  {
+    for (CompRef comp : point)
+    {
+      comp += *(it++);
+    }
+  }
+}
+
+//----------------------------------------------------------------------------
 void vtkCell3D::Contour(double value, vtkDataArray* cellScalars,
   vtkIncrementalPointLocator* locator, vtkCellArray* verts, vtkCellArray* lines,
   vtkCellArray* polys, vtkPointData* inPd, vtkPointData* outPd, vtkCellData* inCd, vtkIdType cellId,
@@ -175,7 +224,7 @@ void vtkCell3D::Contour(double value, vtkDataArray* cellScalars,
     this->GetEdgePoints(edgeNum, tets);
 
     // Calculate a preferred interpolation direction.
-    // Has to be done in same direction to insure coincident points are
+    // Has to be done in same direction to ensure coincident points are
     // merged (different interpolation direction causes perturbations).
     s1 = cellScalars->GetComponent(tets[0], 0);
     s2 = cellScalars->GetComponent(tets[1], 0);
@@ -376,7 +425,7 @@ void vtkCell3D::Clip(double value, vtkDataArray* cellScalars, vtkIncrementalPoin
     cell3D->GetEdgePoints(edgeNum, verts);
 
     // Calculate a preferred interpolation direction.
-    // Has to be done in same direction to insure coincident points are
+    // Has to be done in same direction to ensure coincident points are
     // merged (different interpolation direction causes perturbations).
     s1 = cellScalars->GetComponent(verts[0], 0);
     s2 = cellScalars->GetComponent(verts[1], 0);

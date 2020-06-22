@@ -10,6 +10,7 @@ set(classes
   vtkAssignAttribute
   vtkAttributeDataToFieldDataFilter
   vtkBinCellDataFilter
+  vtkBinnedDecimation
   vtkCellDataToPointData
   vtkCellCenters
   vtkCenterOfMass
@@ -63,6 +64,7 @@ set(classes
   vtkMergeFilter
   vtkMoleculeAppend
   vtkMultiObjectMassProperties
+  vtkPassThrough
   vtkPlaneCutter
   vtkPointDataToCellData
   vtkPolyDataConnectivityFilter
@@ -74,6 +76,7 @@ set(classes
   vtkRearrangeFields
   vtkRectilinearSynchronizedTemplates
   vtkRemoveDuplicatePolys
+  vtkRemoveUnusedPoints
   vtkResampleToImage
   vtkResampleWithDataSet
   vtkReverseSense

@@ -21,16 +21,17 @@
 #ifndef vtkOpenGLPolyDataMapper_h
 #define vtkOpenGLPolyDataMapper_h
 
+#include "vtkDeprecation.h"  // For VTK_DEPRECATED_IN_9_0_0
 #include "vtkNew.h"          // For vtkNew
-#include "vtkNew.h"          // for ivars
 #include "vtkOpenGLHelper.h" // used for ivars
 #include "vtkPolyDataMapper.h"
 #include "vtkRenderingOpenGL2Module.h" // For export macro
 #include "vtkShader.h"                 // for methods
 #include "vtkStateStorage.h"           // used for ivars
 
-#include <map>    //for methods
-#include <vector> //for ivars
+#include <map>    // for map
+#include <tuple>  // for tuple
+#include <vector> // for vector
 
 class vtkCellArray;
 class vtkGenericOpenGLResourceFreeCallback;
@@ -129,7 +130,6 @@ public:
   vtkGetStringMacro(CompositeIdArrayName);
   //@}
 
-#ifndef VTK_LEGACY_REMOVE
   //@{
   /**
    * This function enables you to apply your own substitutions
@@ -141,14 +141,18 @@ public:
    * @deprecated Replaced By vtkShaderProperty::{Add,Clear,ClearAll}ShaderReplacements as of
    * VTK 9.0.
    */
-  VTK_LEGACY(void AddShaderReplacement(vtkShader::Type shaderType, // vertex, fragment, etc
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::AddShaderReplacement")
+  void AddShaderReplacement(vtkShader::Type shaderType, // vertex, fragment, etc
     const std::string& originalValue,
     bool replaceFirst, // do this replacement before the default
-    const std::string& replacementValue, bool replaceAll);)
-  VTK_LEGACY(void ClearShaderReplacement(vtkShader::Type shaderType, // vertex, fragment, etc
-    const std::string& originalValue, bool replaceFirst);)
-  VTK_LEGACY(void ClearAllShaderReplacements(vtkShader::Type shaderType);)
-  VTK_LEGACY(void ClearAllShaderReplacements();)
+    const std::string& replacementValue, bool replaceAll);
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::ClearShaderReplacement")
+  void ClearShaderReplacement(vtkShader::Type shaderType, // vertex, fragment, etc
+    const std::string& originalValue, bool replaceFirst);
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::ClearAllShaderReplacements")
+  void ClearAllShaderReplacements(vtkShader::Type shaderType);
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::ClearAllShaderReplacements")
+  void ClearAllShaderReplacements();
   //@}
 
   //@{
@@ -160,14 +164,19 @@ public:
    *
    * @deprecated Replaced By vtkShaderProperty::Get*ShaderCode as of VTK 9.0.
    */
-  VTK_LEGACY(virtual void SetVertexShaderCode(const char* code);)
-  VTK_LEGACY(virtual char* GetVertexShaderCode();)
-  VTK_LEGACY(virtual void SetFragmentShaderCode(const char* code);)
-  VTK_LEGACY(virtual char* GetFragmentShaderCode();)
-  VTK_LEGACY(virtual void SetGeometryShaderCode(const char* code);)
-  VTK_LEGACY(virtual char* GetGeometryShaderCode();)
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::SetVertexShaderCode")
+  virtual void SetVertexShaderCode(const char* code);
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::GetVertexShaderCode")
+  virtual char* GetVertexShaderCode();
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::SetFragmentShaderCode")
+  virtual void SetFragmentShaderCode(const char* code);
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::GetFragmentShaderCode")
+  virtual char* GetFragmentShaderCode();
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::SetGeometryShaderCode")
+  virtual void SetGeometryShaderCode(const char* code);
+  VTK_DEPRECATED_IN_9_0_0("Use vtkOpenGLShaderProperty::GetGeometryShaderCode")
+  virtual char* GetGeometryShaderCode();
   //@}
-#endif
 
   /**
    * Make a shallow copy of this mapper.
@@ -189,8 +198,6 @@ public:
     PrimitiveLines,
     PrimitiveTris,
     PrimitiveTriStrips,
-    PrimitiveTrisEdges,
-    PrimitiveTriStripsEdges,
     PrimitiveVertices,
     PrimitiveEnd
   };
@@ -298,6 +305,8 @@ protected:
     std::map<vtkShader::Type, vtkShader*> shaders, vtkActor* act);
   virtual void ReplaceShaderColor(
     std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* act);
+  virtual void ReplaceShaderEdges(
+    std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* act);
   virtual void ReplaceShaderLight(
     std::map<vtkShader::Type, vtkShader*> shaders, vtkRenderer* ren, vtkActor* act);
   virtual void ReplaceShaderTCoord(
@@ -365,13 +374,35 @@ protected:
    */
   virtual void BuildIBO(vtkRenderer* ren, vtkActor* act, vtkPolyData* poly);
 
+  /**
+   * Build the selection IBO, called by UpdateBufferObjects
+   */
+  virtual void BuildSelectionIBO(
+    vtkPolyData* poly, std::vector<unsigned int> (&indices)[4], vtkIdType offset);
+
+  /**
+   * Build the selection cache, used to map value ids to indices values
+   */
+  virtual void BuildSelectionCache(const char* arrayName, bool selectingPoints, vtkPolyData* poly);
+
   // The VBO and its layout.
   vtkOpenGLVertexBufferObjectGroup* VBOs;
 
   // Structures for the various cell types we render.
   vtkOpenGLHelper Primitives[PrimitiveEnd];
+  vtkOpenGLHelper SelectionPrimitives[PrimitiveEnd];
   vtkOpenGLHelper* LastBoundBO;
-  bool DrawingEdgesOrVertices;
+  bool DrawingVertices;
+  bool DrawingSelection = false;
+  int SelectionType;
+  vtkMTimeType SelectionTime = 0;
+
+  std::map<std::tuple<unsigned int, unsigned int, vtkIdType>, std::vector<vtkIdType>>
+    SelectionCache;
+  std::string SelectionCacheName;
+  bool SelectionCacheForPoints = false;
+  vtkMTimeType SelectionCacheTime = 0;
+  vtkPolyData* SelectionPolyData = nullptr;
 
   // do we have wide lines that require special handling
   virtual bool HaveWideLines(vtkRenderer*, vtkActor*);
@@ -387,7 +418,7 @@ protected:
   //  ColorInternalTexture
   //  Actors texture
   //  Properties textures
-  virtual std::vector<std::pair<vtkTexture*, std::string> > GetTextures(vtkActor* actor);
+  virtual std::vector<std::pair<vtkTexture*, std::string>> GetTextures(vtkActor* actor);
 
   // do we have textures coordinates that require special handling
   virtual bool HaveTCoords(vtkPolyData* poly);
@@ -446,6 +477,11 @@ protected:
   vtkOpenGLBufferObject* CellNormalBuffer;
   bool HaveCellNormals;
 
+  vtkTextureObject* EdgeTexture;
+  vtkOpenGLBufferObject* EdgeBuffer;
+  std::vector<unsigned char> EdgeValues;
+  virtual bool DrawingEdges(vtkRenderer*, vtkActor*);
+
   // additional picking indirection
   char* PointIdArrayName;
   char* CellIdArrayName;
@@ -464,10 +500,10 @@ protected:
 
   // Store shader properties on this class by legacy shader replacement functions
   // This should disappear when the functions are deprecated
-#ifndef VTK_LEGACY_REMOVE
+  // VTK_DEPRECATED_IN_9_0_0("legacy support functions")
   vtkOpenGLShaderProperty* GetLegacyShaderProperty();
+  // VTK_DEPRECATED_IN_9_0_0("legacy support functions")
   vtkSmartPointer<vtkOpenGLShaderProperty> LegacyShaderProperty;
-#endif
 
   vtkOpenGLRenderTimer* TimerQuery;
 
@@ -491,6 +527,13 @@ protected:
 
   // compute and set the maximum point and cell ID used in selection
   virtual void UpdateMaximumPointCellIds(vtkRenderer* ren, vtkActor* actor);
+
+  void AddPointIdsToSelectionPrimitives(vtkPolyData* poly, const char* arrayName,
+    unsigned int processId, unsigned int compositeIndex, vtkIdType selectedId);
+  void AddCellIdsToSelectionPrimitives(vtkPolyData* poly, const char* arrayName,
+    unsigned int processId, unsigned int compositeIndex, vtkIdType selectedId);
+
+  vtkNew<vtkCellArray> SelectionArrays[4];
 
 private:
   vtkOpenGLPolyDataMapper(const vtkOpenGLPolyDataMapper&) = delete;

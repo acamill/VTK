@@ -30,7 +30,7 @@
 #include <algorithm>
 #include <vector>
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Enums for vtkPythonOverload::CheckArg().
 // Values between VTK_PYTHON_GOOD_MATCH and VTK_PYTHON_NEEDS_CONVERSION
 // are reserved for checking how many generations a vtkObject arg is from
@@ -44,7 +44,7 @@ enum vtkPythonArgPenalties
   VTK_PYTHON_INCOMPATIBLE = 65535
 };
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // A helper struct for CallMethod
 class vtkPythonOverloadHelper
 {
@@ -190,7 +190,7 @@ bool vtkPythonOverloadHelper::betterthan(const vtkPythonOverloadHelper* other)
   return (iter1 != other->m_tiebreakers.rend());
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // If tmpi > VTK_INT_MAX, then penalize types of int size or smaller
 
 static int vtkPythonIntPenalty(PY_LONG_LONG tmpi, int penalty, char format)
@@ -242,7 +242,7 @@ static int vtkPythonIntPenalty(PY_LONG_LONG tmpi, int penalty, char format)
 }
 
 #ifdef VTK_PY3K
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Check if a unicode string is ascii, which makes it more suitable
 // as a match for "char *" or "std::string".
 
@@ -297,7 +297,7 @@ static int vtkPythonStringPenalty(PyObject* u, char format, int penalty)
 #endif
 
 #ifdef VTK_PY3K
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Check if object supports conversion to integer
 
 static bool vtkPythonCanConvertToInt(PyObject* arg)
@@ -314,7 +314,7 @@ static bool vtkPythonCanConvertToInt(PyObject* arg)
 }
 #endif
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This must check the same format chars that are used by
 // vtkWrapPython_ArgCheckString() in vtkWrapPythonOverload.c.
 //
@@ -839,7 +839,7 @@ int vtkPythonOverload::CheckArg(PyObject* arg, const char* format, const char* n
   return penalty;
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Call the overloaded method that is the best match for the arguments.
 // The first arg is name of the class that the methods belong to, it
 // is there for potential diagnostic usage but is currently unused.
@@ -858,7 +858,7 @@ PyObject* vtkPythonOverload::CallMethod(PyMethodDef* methods, PyObject* self, Py
 
     const char* format = nullptr;
     const char* classname = nullptr;
-    bool selfIsClass = 0;
+    bool selfIsClass = false;
     int sig;
 
     // Is self a type object, rather than an instance?  If so, then the
@@ -981,7 +981,7 @@ PyObject* vtkPythonOverload::CallMethod(PyMethodDef* methods, PyObject* self, Py
   return nullptr;
 }
 
-//--------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Look through the a batch of constructor methods to see if any of
 // them take the provided argument.
 
@@ -1001,7 +1001,7 @@ PyMethodDef* vtkPythonOverload::FindConversionMethod(PyMethodDef* methods, PyObj
     if (meth->ml_doc[0] != '-')
     {
       // If meth only takes one arg
-      helper.initialize(0, meth->ml_doc);
+      helper.initialize(false, meth->ml_doc);
       if (helper.next(&format, &classname) && !helper.next(&dummy1, &dummy2))
       {
         // If the constructor accepts the arg without

@@ -36,23 +36,23 @@
 #endif
 
 vtkStandardNewMacro(vtkResourceFileLocator);
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkResourceFileLocator::vtkResourceFileLocator()
   : LogVerbosity(vtkLogger::VERBOSITY_TRACE)
 {
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkResourceFileLocator::~vtkResourceFileLocator() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 std::string vtkResourceFileLocator::Locate(
   const std::string& anchor, const std::string& landmark, const std::string& defaultDir)
 {
   return this->Locate(anchor, { std::string() }, landmark, defaultDir);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 std::string vtkResourceFileLocator::Locate(const std::string& anchor,
   const std::vector<std::string>& landmark_prefixes, const std::string& landmark,
   const std::string& defaultDir)
@@ -84,7 +84,7 @@ std::string vtkResourceFileLocator::Locate(const std::string& anchor,
   return defaultDir;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 std::string vtkResourceFileLocator::GetLibraryPathForSymbolUnix(const char* symbolname)
 {
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -108,7 +108,7 @@ std::string vtkResourceFileLocator::GetLibraryPathForSymbolUnix(const char* symb
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 std::string vtkResourceFileLocator::GetLibraryPathForSymbolWin32(const void* fptr)
 {
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -127,14 +127,13 @@ std::string vtkResourceFileLocator::GetLibraryPathForSymbolWin32(const void* fpt
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkResourceFileLocator::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "LogVerbosity: " << this->LogVerbosity << endl;
 }
 
-#if !defined(VTK_LEGACY_REMOVE)
 void vtkResourceFileLocator::SetPrintDebugInformation(bool val)
 {
   VTK_LEGACY_REPLACED_BODY(vtkResourceFileLocator::SetPrintDebugInformation, "VTK 9.0",
@@ -162,5 +161,3 @@ void vtkResourceFileLocator::PrintDebugInformationOff()
     vtkResourceFileLocator::SetLogVerbosity);
   this->SetLogVerbosity(vtkLogger::VERBOSITY_TRACE);
 }
-
-#endif

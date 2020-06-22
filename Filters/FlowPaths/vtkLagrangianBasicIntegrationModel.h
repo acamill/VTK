@@ -177,6 +177,13 @@ public:
   vtkGetMacro(Tolerance, double);
   //@}
 
+  //@{
+  /**
+   * Get the specific tolerance to use with the locators.
+   */
+  vtkGetMacro(LocatorTolerance, double);
+  //@}
+
   /**
    * Interact the current particle with a surfaces
    * Return a particle to record as interaction point if not nullptr
@@ -364,13 +371,13 @@ public:
    * Let the model allocate and initialize a threaded data.
    * This method is thread-safe, its reimplementation should still be thread-safe.
    */
-  virtual void InitializeThreadedData(vtkLagrangianThreadedData* vtkNotUsed(data)) {}
+  virtual vtkLagrangianThreadedData* InitializeThreadedData();
 
   /**
    * Let the model finalize and deallocate a user data at thread level
    * This method is called serially for each thread and does not require to be thread safe.
    */
-  virtual void FinalizeThreadedData(vtkLagrangianThreadedData* vtkNotUsed(data)) {}
+  virtual void FinalizeThreadedData(vtkLagrangianThreadedData*& data);
 
   /**
    * Enable model post process on output
@@ -382,6 +389,11 @@ public:
   {
     return true;
   }
+
+  /**
+   * Allow for model setup prior to Particle Initalization
+   */
+  virtual void PreParticleInitalization() {}
 
   /**
    * Enable model to modify particle before integration
@@ -594,7 +606,7 @@ protected:
   bool LocatorsBuilt;
   vtkLocatorsType* Locators;
   vtkDataSetsType* DataSets;
-  std::vector<double> SharedWeights;
+  int WeightsSize = 0;
 
   struct ArrayVal
   {
@@ -607,7 +619,7 @@ protected:
   {
     int nComp;
     int type;
-    std::vector<std::pair<int, std::string> > enumValues;
+    std::vector<std::pair<int, std::string>> enumValues;
   } SurfaceArrayDescription;
   std::map<std::string, SurfaceArrayDescription> SurfaceArrayDescriptions;
 
@@ -615,6 +627,7 @@ protected:
   vtkLocatorsType* SurfaceLocators;
 
   double Tolerance;
+  double LocatorTolerance = 0.001;
   bool NonPlanarQuadSupport;
   bool UseInitialIntegrationTime;
   int NumberOfTrackedUserData = 0;

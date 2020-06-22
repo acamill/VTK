@@ -30,13 +30,13 @@
 #define SEVEN_POINT_TRIANGLE
 
 vtkStandardNewMacro(vtkLagrangeTriangle);
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLagrangeTriangle::vtkLagrangeTriangle()
   : vtkHigherOrderTriangle()
 {
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLagrangeTriangle::~vtkLagrangeTriangle() = default;
 
 void vtkLagrangeTriangle::PrintSelf(ostream& os, vtkIndent indent)
@@ -47,11 +47,20 @@ void vtkLagrangeTriangle::PrintSelf(ostream& os, vtkIndent indent)
 vtkCell* vtkLagrangeTriangle::GetEdge(int edgeId)
 {
   vtkLagrangeCurve* result = EdgeCell;
-  this->GetEdgeWithoutRationalWeights(result, edgeId);
+  const auto set_number_of_ids_and_points = [&](const vtkIdType& npts) -> void {
+    result->Points->SetNumberOfPoints(npts);
+    result->PointIds->SetNumberOfIds(npts);
+  };
+  const auto set_ids_and_points = [&](const vtkIdType& edge_id, const vtkIdType& face_id) -> void {
+    result->Points->SetPoint(edge_id, this->Points->GetPoint(face_id));
+    result->PointIds->SetId(edge_id, this->PointIds->GetId(face_id));
+  };
+
+  this->SetEdgeIdsAndPoints(edgeId, set_number_of_ids_and_points, set_ids_and_points);
   return result;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangeTriangle::InterpolateFunctions(const double pcoords[3], double* weights)
 {
   // Adapted from P. Silvester, "High-Order Polynomial Triangular Finite
@@ -115,7 +124,7 @@ void vtkLagrangeTriangle::InterpolateFunctions(const double pcoords[3], double* 
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangeTriangle::InterpolateDerivs(const double pcoords[3], double* derivs)
 {
   // Analytic differentiation of the triangle shape functions, as defined in

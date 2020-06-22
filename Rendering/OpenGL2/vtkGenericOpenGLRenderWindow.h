@@ -76,8 +76,7 @@ public:
   void SetBackRightBuffer(unsigned int);
   // }@
 
-  void SetDefaultFrameBufferId(unsigned int);
-  void SetOwnContext(int);
+  void SetOwnContext(vtkTypeBool);
 
   //! no-op (for API compat with OpenGL1).
   void PushState() {}
@@ -168,7 +167,12 @@ public:
   /**
    * Overridden to simply call `GetReadyForRendering`
    */
-  bool IsDrawable() override { return this->ReadyForRendering; }
+  VTK_LEGACY(bool IsDrawable() override);
+
+  /**
+   * Initialize OpenGL for this window.
+   */
+  void OpenGLInit() override;
 
 protected:
   /**

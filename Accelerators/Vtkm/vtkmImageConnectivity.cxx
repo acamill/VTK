@@ -32,10 +32,10 @@
 vtkStandardNewMacro(vtkmImageConnectivity);
 
 //------------------------------------------------------------------------------
-vtkmImageConnectivity::vtkmImageConnectivity() {}
+vtkmImageConnectivity::vtkmImageConnectivity() = default;
 
 //------------------------------------------------------------------------------
-vtkmImageConnectivity::~vtkmImageConnectivity() {}
+vtkmImageConnectivity::~vtkmImageConnectivity() = default;
 
 //------------------------------------------------------------------------------
 void vtkmImageConnectivity::PrintSelf(ostream& os, vtkIndent indent)
@@ -79,8 +79,7 @@ int vtkmImageConnectivity::RequestData(
     filter.SetFieldsToPass(vtkm::filter::FieldSelection(vtkm::filter::FieldSelection::MODE_NONE));
 
     vtkm::cont::DataSet result;
-    vtkmInputFilterPolicy policy;
-    result = filter.Execute(inData, policy);
+    result = filter.Execute(inData);
 
     // Make sure the output has all the fields / etc that the input has
     output->ShallowCopy(input);

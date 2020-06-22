@@ -58,9 +58,10 @@ vtkPLYWriter::~vtkPLYWriter()
   delete[] this->FileName;
 }
 
-typedef struct _plyVertex {
-  float x[3];             // the usual 3-space position of a vertex
-  float n[3];             // the usual 3-space position of a vertex normal
+typedef struct
+{
+  float x[3]; // the usual 3-space position of a vertex
+  float n[3]; // the usual 3-space position of a vertex normal
   unsigned char red;
   unsigned char green;
   unsigned char blue;
@@ -68,7 +69,7 @@ typedef struct _plyVertex {
   float tex[2];
 } plyVertex;
 
-typedef struct _plyFace
+typedef struct
 {
   unsigned char nverts; // number of vertex indices in list
   int* verts;           // vertex index list

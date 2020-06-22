@@ -121,7 +121,7 @@ public:
      */
     virtual int Commutative() = 0;
 
-    virtual ~Operation() {}
+    virtual ~Operation() = default;
   };
 
   /**
@@ -467,7 +467,7 @@ public:
    * @param[in] destProcessId - process id to gather on.
    * @return - 1 on success, 0 on failure.
    */
-  int Gather(vtkDataObject* sendBuffer, std::vector<vtkSmartPointer<vtkDataObject> >& recvBuffer,
+  int Gather(vtkDataObject* sendBuffer, std::vector<vtkSmartPointer<vtkDataObject>>& recvBuffer,
     int destProcessId);
 
   /**
@@ -817,6 +817,8 @@ public:
     return this->AllGatherVoidArray(sendBuffer, recvBuffer, length, VTK_UNSIGNED_LONG_LONG);
   }
   int AllGather(vtkDataArray* sendBuffer, vtkDataArray* recvBuffer);
+  int AllGather(
+    const vtkMultiProcessStream& sendBuffer, std::vector<vtkMultiProcessStream>& recvBuffer);
   //@}
 
   //@{
@@ -1301,6 +1303,13 @@ protected:
     vtkSmartPointer<vtkDataArray>* recvArrays, int destProcessId);
   int GatherVElementalDataObject(
     vtkDataObject* sendData, vtkSmartPointer<vtkDataObject>* receiveData, int destProcessId);
+  //@}
+
+  //@{
+  int AllGatherV(vtkDataArray* sendBuffer, vtkDataArray* recvBuffer,
+    vtkIdTypeArray* recvLengthsArray, vtkIdTypeArray* offsetsArray);
+  int AllGatherV(
+    vtkDataArray* sendArray, vtkDataArray* recvArray, vtkSmartPointer<vtkDataArray>* recvArrays);
   //@}
 
   int ReceiveDataObject(vtkDataObject* data, int remoteHandle, int tag, int type = -1);

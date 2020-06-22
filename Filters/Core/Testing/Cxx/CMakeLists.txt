@@ -31,11 +31,13 @@ vtk_add_test_cxx(vtkFiltersCoreCxxTests tests
   TestFeatureEdges.cxx,NO_VALID
   TestFlyingEdges.cxx
   TestGlyph3D.cxx
+  TestGlyph3DFollowCamera.cxx,NO_VALID
   TestHedgeHog.cxx,NO_VALID
   TestImageDataToExplicitStructuredGrid.cxx
   TestImplicitPolyDataDistance.cxx
   TestImplicitProjectOnPlaneDistance.cxx
   TestMaskPoints.cxx,NO_VALID
+  TestMaskPointsModes.cxx
   TestNamedComponents.cxx,NO_VALID
   TestPointDataToCellData.cxx,NO_VALID
   TestPolyDataConnectivityFilter.cxx,NO_VALID

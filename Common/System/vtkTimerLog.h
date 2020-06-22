@@ -117,7 +117,7 @@ public:
    * string.  The internal buffer is 4096 bytes and will truncate anything longer.
    */
 #ifndef __VTK_WRAP__
-  static void FormatAndMarkEvent(const char* EventString, ...) VTK_FORMAT_PRINTF(1, 2);
+  static void FormatAndMarkEvent(const char* format, ...) VTK_FORMAT_PRINTF(1, 2);
 #endif
 
   //@{
@@ -209,8 +209,8 @@ protected:
   {
     this->StartTime = 0;
     this->EndTime = 0;
-  } // insure constructor/destructor protected
-  ~vtkTimerLog() override {}
+  } // ensure constructor/destructor protected
+  ~vtkTimerLog() override = default;
 
   static int Logging;
   static int Indent;

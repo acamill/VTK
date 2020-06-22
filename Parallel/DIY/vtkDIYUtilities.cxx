@@ -18,6 +18,7 @@
 #include "vtkCellCenters.h"
 #include "vtkCompositeDataIterator.h"
 #include "vtkCompositeDataSet.h"
+#include "vtkDataObjectTypes.h"
 #include "vtkImageData.h"
 #include "vtkImageDataToPointSet.h"
 #include "vtkLogger.h"
@@ -28,8 +29,7 @@
 #include "vtkRectilinearGridToPointSet.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkXMLDataObjectWriter.h"
-#include "vtkXMLImageDataReader.h"
-#include "vtkXMLUnstructuredGridReader.h"
+#include "vtkXMLGenericDataObjectReader.h"
 
 #if VTK_MODULE_ENABLE_VTK_ParallelMPI
 #include "vtkMPI.h"
@@ -64,13 +64,13 @@ vtkDIYUtilitiesCleanup::~vtkDIYUtilitiesCleanup()
   }
 }
 
-//----------------------------------------------------------------------------
-vtkDIYUtilities::vtkDIYUtilities() {}
+//------------------------------------------------------------------------------
+vtkDIYUtilities::vtkDIYUtilities() = default;
 
-//----------------------------------------------------------------------------
-vtkDIYUtilities::~vtkDIYUtilities() {}
+//------------------------------------------------------------------------------
+vtkDIYUtilities::~vtkDIYUtilities() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDIYUtilities::InitializeEnvironmentForDIY()
 {
 #if VTK_MODULE_ENABLE_VTK_ParallelMPI
@@ -90,7 +90,7 @@ void vtkDIYUtilities::InitializeEnvironmentForDIY()
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 diy::mpi::communicator vtkDIYUtilities::GetCommunicator(vtkMultiProcessController* controller)
 {
   vtkDIYUtilities::InitializeEnvironmentForDIY();
@@ -106,7 +106,7 @@ diy::mpi::communicator vtkDIYUtilities::GetCommunicator(vtkMultiProcessControlle
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDIYUtilities::AllReduce(diy::mpi::communicator& comm, vtkBoundingBox& bbox)
 {
   if (comm.size() > 1)
@@ -124,7 +124,7 @@ void vtkDIYUtilities::AllReduce(diy::mpi::communicator& comm, vtkBoundingBox& bb
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDIYUtilities::Save(diy::BinaryBuffer& bb, vtkDataSet* p)
 {
   if (p)
@@ -154,7 +154,7 @@ void vtkDIYUtilities::Save(diy::BinaryBuffer& bb, vtkDataSet* p)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDIYUtilities::Load(diy::BinaryBuffer& bb, vtkDataSet*& p)
 {
   p = nullptr;
@@ -170,30 +170,19 @@ void vtkDIYUtilities::Load(diy::BinaryBuffer& bb, vtkDataSet*& p)
     diy::load(bb, data);
 
     vtkSmartPointer<vtkDataSet> ds;
-    switch (type)
+    if (auto reader = vtkXMLGenericDataObjectReader::CreateReader(type, /*parallel*/ false))
     {
-      case VTK_UNSTRUCTURED_GRID:
-      {
-        vtkNew<vtkXMLUnstructuredGridReader> reader;
-        reader->ReadFromInputStringOn();
-        reader->SetInputString(data);
-        reader->Update();
-        ds = vtkDataSet::SafeDownCast(reader->GetOutputDataObject(0));
-      }
-      break;
-
-      case VTK_IMAGE_DATA:
-      {
-        vtkNew<vtkXMLImageDataReader> reader;
-        reader->ReadFromInputStringOn();
-        reader->SetInputString(data);
-        reader->Update();
-        ds = vtkDataSet::SafeDownCast(reader->GetOutputDataObject(0));
-      }
-      break;
-      default:
-        // aborting for debugging purposes.
-        abort();
+      reader->ReadFromInputStringOn();
+      reader->SetInputString(data);
+      reader->Update();
+      ds = vtkDataSet::SafeDownCast(reader->GetOutputDataObject(0));
+    }
+    else
+    {
+      vtkLogF(ERROR, "Currrently type '%d' (%s) is not supported.", type,
+        vtkDataObjectTypes::GetClassNameFromTypeId(type));
+      // aborting for debugging purposes.
+      abort();
     }
 
     ds->Register(nullptr);
@@ -201,7 +190,7 @@ void vtkDIYUtilities::Load(diy::BinaryBuffer& bb, vtkDataSet*& p)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 diy::ContinuousBounds vtkDIYUtilities::Convert(const vtkBoundingBox& bbox)
 {
   if (bbox.IsValid())
@@ -218,7 +207,7 @@ diy::ContinuousBounds vtkDIYUtilities::Convert(const vtkBoundingBox& bbox)
   return diy::ContinuousBounds(3);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkBoundingBox vtkDIYUtilities::Convert(const diy::ContinuousBounds& bds)
 {
   double bounds[6];
@@ -233,7 +222,7 @@ vtkBoundingBox vtkDIYUtilities::Convert(const diy::ContinuousBounds& bds)
   return bbox;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDIYUtilities::Broadcast(
   diy::mpi::communicator& comm, std::vector<vtkBoundingBox>& boxes, int source)
 {
@@ -258,11 +247,11 @@ void vtkDIYUtilities::Broadcast(
   }
 }
 
-//----------------------------------------------------------------------------
-std::vector<vtkDataSet*> vtkDIYUtilities::GetDataSets(vtkDataObject* input)
+//------------------------------------------------------------------------------
+std::vector<vtkDataSet*> vtkDIYUtilities::GetDataSets(vtkDataObject* dobj)
 {
   std::vector<vtkDataSet*> datasets;
-  if (auto cd = vtkCompositeDataSet::SafeDownCast(input))
+  if (auto cd = vtkCompositeDataSet::SafeDownCast(dobj))
   {
     auto iter = cd->NewIterator();
     for (iter->InitTraversal(); !iter->IsDoneWithTraversal(); iter->GoToNextItem())
@@ -274,7 +263,7 @@ std::vector<vtkDataSet*> vtkDIYUtilities::GetDataSets(vtkDataObject* input)
     }
     iter->Delete();
   }
-  else if (auto ds = vtkDataSet::SafeDownCast(input))
+  else if (auto ds = vtkDataSet::SafeDownCast(dobj))
   {
     datasets.push_back(ds);
   }
@@ -282,8 +271,8 @@ std::vector<vtkDataSet*> vtkDIYUtilities::GetDataSets(vtkDataObject* input)
   return datasets;
 }
 
-//----------------------------------------------------------------------------
-std::vector<vtkSmartPointer<vtkPoints> > vtkDIYUtilities::ExtractPoints(
+//------------------------------------------------------------------------------
+std::vector<vtkSmartPointer<vtkPoints>> vtkDIYUtilities::ExtractPoints(
   const std::vector<vtkDataSet*>& datasets, bool use_cell_centers)
 {
   vtkNew<vtkCellCenters> cellCenterFilter;
@@ -293,7 +282,7 @@ std::vector<vtkSmartPointer<vtkPoints> > vtkDIYUtilities::ExtractPoints(
   vtkNew<vtkRectilinearGridToPointSet> convertorRG;
   vtkNew<vtkImageDataToPointSet> convertorID;
 
-  std::vector<vtkSmartPointer<vtkPoints> > all_points;
+  std::vector<vtkSmartPointer<vtkPoints>> all_points;
   for (auto ds : datasets)
   {
     if (use_cell_centers)
@@ -304,30 +293,30 @@ std::vector<vtkSmartPointer<vtkPoints> > vtkDIYUtilities::ExtractPoints(
     }
     if (auto ps = vtkPointSet::SafeDownCast(ds))
     {
-      all_points.push_back(ps->GetPoints());
+      all_points.emplace_back(ps->GetPoints());
     }
     else if (auto rg = vtkRectilinearGrid::SafeDownCast(ds))
     {
       convertorRG->SetInputDataObject(rg);
       convertorRG->Update();
-      all_points.push_back(convertorRG->GetOutput()->GetPoints());
+      all_points.emplace_back(convertorRG->GetOutput()->GetPoints());
     }
     else if (auto id = vtkImageData::SafeDownCast(ds))
     {
       convertorID->SetInputDataObject(id);
       convertorID->Update();
-      all_points.push_back(convertorID->GetOutput()->GetPoints());
+      all_points.emplace_back(convertorID->GetOutput()->GetPoints());
     }
     else
     {
       // need a placeholder for dataset.
-      all_points.push_back(nullptr);
+      all_points.emplace_back(nullptr);
     }
   }
   return all_points;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkBoundingBox vtkDIYUtilities::GetLocalBounds(vtkDataObject* dobj)
 {
   double bds[6];
@@ -343,7 +332,7 @@ vtkBoundingBox vtkDIYUtilities::GetLocalBounds(vtkDataObject* dobj)
   return vtkBoundingBox(bds);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkDIYUtilities::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

@@ -149,7 +149,7 @@ to modify include:
     not.
   * `VTK_WRAP_PYTHON` (default `OFF`; requires `VTK_ENABLE_WRAPPING`): Whether
     Python support will be available or not.
-  * `VTK_PYTHON_VERSION` (default `2`): The major version of Python to
+  * `VTK_PYTHON_VERSION` (default `3`): The major version of Python to
     support. Must be either `2` or `3`.
 
 Less common, but variables which may be of interest to some:
@@ -176,8 +176,15 @@ More advanced options:
     documentation using Doxygen.
   * `VTK_BUILD_ALL_MODULES` (default `OFF`): If set, VTK will enable all
     modules not disabled by other features.
+  * `VTK_ENABLE_REMOTE_MODULES` (default `ON`): If set, VTK will try to build
+    remote modules (the `Remote` directory). If unset, no remote modules will
+    build.
   * `VTK_USE_EXTERNAL` (default `OFF`): Whether to prefer external third
     party libraries or the versions VTK's source contains.
+  * `VTK_TARGET_SPECIFIC_COMPONENTS` (default `OFF`): Whether to install
+    files into target-specific components (`<TARGET>-runtime`,
+    `<TARGET>-development`, etc.) or general components (`runtime`,
+    `development`, etc.)
   * `VTK_VERSIONED_INSTALL` (default `ON`): Whether to add version numbers to
     VTK's include directories and library names in the install tree.
   * `VTK_CUSTOM_LIBRARY_SUFFIX` (default depends on `VTK_VERSIONED_INSTALL`):
@@ -276,7 +283,7 @@ as it would be normally and then the generated `setup.py` file used to create
 the wheel.
 
 ```sh
-cmake -GNinja -DVTK_WHEEL_BUILD=ON -DVTK_PYTHON_VERSION=3 -DVTK_WRAP_PYTHON=ON path/to/vtk/source
+cmake -GNinja -DVTK_WHEEL_BUILD=ON -DVTK_WRAP_PYTHON=ON path/to/vtk/source
 ninja
 python3 setup.py bdist_wheel
 ```

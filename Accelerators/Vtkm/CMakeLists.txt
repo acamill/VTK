@@ -29,7 +29,7 @@ set(private_headers
   vtkmlib/ArrayConverters.hxx
   vtkmlib/Portals.hxx
   vtkmlib/PortalTraits.h
-  vtkmDataArray.hxx)
+  vtkmlib/vtkmDataArray.hxx)
 
 set(impl_classes
   vtkmAverageToCells
@@ -90,13 +90,6 @@ list(APPEND headers
 
 if (TARGET vtkm::cuda)
   enable_language(CUDA)
-
-  # XXX(cmake#7519): Workaround for CMake which causes the c++11 flag set for
-  # VTK-m using target_compile_features to not work.
-  if (CMAKE_VERSION VERSION_LESS 3.11)
-    set(CMAKE_CUDA_STANDARD 11)
-    set(CMAKE_CUDA_STANDARD_REQUIRED True)
-  endif()
 
   # Temporarily suppress "has address taken but no possible call to it" warnings,
   # until we figure out its implications.

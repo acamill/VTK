@@ -13,7 +13,7 @@ following should be fixed first:
   - A better solution than `-undefined dynamic_lookup` for macOS. VTK has
     [an issue][VTK dynamic Python lookup issue] filed for this already.
 
-[VTK dynamic Python lookup issue]: https://gitlab.kitware.com/vtk/vtk/issues/17214
+[VTK dynamic Python lookup issue]: https://gitlab.kitware.com/vtk/vtk/-/issues/17214
 #]==]
 
 if (NOT DEFINED VTK_PYTHON_VERSION)
@@ -104,7 +104,7 @@ endif ()
 # For static builds, since vtkPythonInterpreter cannot work off the library
 # location, but instead has to use the executable location, it needs to know the
 # library dir explicitly.
-if (NOT VTK_BUILD_SHARED_LIBS)
+if (NOT BUILD_SHARED_LIBS)
   set(VTK_PYTHON_SITE_PACKAGES_SUFFIX_FIXED "${VTK_INSTALL_PYTHON_MODULES_DIR}")
 else ()
   set(VTK_PYTHON_SITE_PACKAGES_SUFFIX_FIXED "${VTK_PYTHON_SITE_PACKAGES_SUFFIX}")

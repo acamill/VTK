@@ -24,7 +24,7 @@ import javax.swing.SwingUtilities;
  */
 public class vtkPanel extends Canvas implements MouseListener, MouseMotionListener, MouseWheelListener, KeyListener {
   private static final long serialVersionUID = 1L;
-  protected vtkRenderWindow rw = new vtkRenderWindow();
+  protected vtkRenderWindow rw = new vtkOpenGLRenderWindow();
   protected vtkRenderer ren = new vtkRenderer();
   protected vtkCamera cam = null;
   protected vtkLight lgt = new vtkLight();
@@ -171,6 +171,10 @@ public class vtkPanel extends Canvas implements MouseListener, MouseMotionListen
         }
         Lock();
         rw.Render();
+        if (rw instanceof vtkOpenGLRenderWindow)
+        {
+          ((vtkOpenGLRenderWindow)rw).BlitDisplayBuffer();
+        }
         UnLock();
         rendering = false;
       }

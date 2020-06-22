@@ -36,7 +36,7 @@
 
 vtkStandardNewMacro(vtkSSAOPass);
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSSAOPass::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
@@ -97,7 +97,7 @@ void vtkSSAOPass::PrintSelf(ostream& os, vtkIndent indent)
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSSAOPass::InitializeGraphicsResources(vtkOpenGLRenderWindow* renWin, int w, int h)
 {
   if (this->ColorTexture == nullptr)
@@ -165,7 +165,7 @@ void vtkSSAOPass::InitializeGraphicsResources(vtkOpenGLRenderWindow* renWin, int
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSSAOPass::ComputeKernel()
 {
   std::uniform_real_distribution<float> randomFloats(0.0, 1.0);
@@ -196,7 +196,7 @@ void vtkSSAOPass::ComputeKernel()
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkSSAOPass::SetShaderParameters(vtkShaderProgram* vtkNotUsed(program),
   vtkAbstractMapper* mapper, vtkProp* vtkNotUsed(prop), vtkOpenGLVertexArrayObject* vtkNotUsed(VAO))
 {
@@ -212,7 +212,7 @@ bool vtkSSAOPass::SetShaderParameters(vtkShaderProgram* vtkNotUsed(program),
   return true;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSSAOPass::RenderDelegate(const vtkRenderState* s, int w, int h)
 {
   this->PreRender(s);
@@ -230,12 +230,14 @@ void vtkSSAOPass::RenderDelegate(const vtkRenderState* s, int w, int h)
   this->DelegatePass->Render(s);
   this->NumberOfRenderedProps += this->DelegatePass->GetNumberOfRenderedProps();
 
+  this->FrameBufferObject->RemoveColorAttachments(3);
+
   this->FrameBufferObject->GetContext()->GetState()->PopFramebufferBindings();
 
   this->PostRender(s);
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSSAOPass::RenderSSAO(vtkOpenGLRenderWindow* renWin, vtkMatrix4x4* projection, int w, int h)
 {
   if (this->SSAOQuadHelper && this->SSAOQuadHelper->ShaderChangeValue < this->GetMTime())
@@ -349,6 +351,8 @@ void vtkSSAOPass::RenderSSAO(vtkOpenGLRenderWindow* renWin, vtkMatrix4x4* projec
 
   this->SSAOQuadHelper->Render();
 
+  this->FrameBufferObject->RemoveColorAttachments(1);
+
   this->FrameBufferObject->GetContext()->GetState()->PopFramebufferBindings();
 
   this->DepthTexture->Deactivate();
@@ -356,7 +360,7 @@ void vtkSSAOPass::RenderSSAO(vtkOpenGLRenderWindow* renWin, vtkMatrix4x4* projec
   this->NormalTexture->Deactivate();
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSSAOPass::RenderCombine(vtkOpenGLRenderWindow* renWin)
 {
   vtkOpenGLState* ostate = renWin->GetState();
@@ -437,7 +441,7 @@ void vtkSSAOPass::RenderCombine(vtkOpenGLRenderWindow* renWin)
   this->SSAOTexture->Deactivate();
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSSAOPass::Render(const vtkRenderState* s)
 {
   vtkOpenGLClearErrorMacro();
@@ -458,8 +462,16 @@ void vtkSSAOPass::Render(const vtkRenderState* s)
   }
 
   // create FBO and texture
-  int x, y, w, h;
-  r->GetTiledSizeAndOrigin(&w, &h, &x, &y);
+  int x = 0, y = 0, w, h;
+  vtkFrameBufferObjectBase* fbo = s->GetFrameBuffer();
+  if (fbo)
+  {
+    fbo->GetLastSize(w, h);
+  }
+  else
+  {
+    r->GetTiledSizeAndOrigin(&w, &h, &x, &y);
+  }
 
   this->InitializeGraphicsResources(renWin, w, h);
 
@@ -491,7 +503,7 @@ void vtkSSAOPass::Render(const vtkRenderState* s)
   vtkOpenGLCheckErrorMacro("failed after Render");
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkSSAOPass::PreReplaceShaderValues(std::string& vtkNotUsed(vertexShader),
   std::string& vtkNotUsed(geometryShader), std::string& fragmentShader, vtkAbstractMapper* mapper,
   vtkProp* vtkNotUsed(prop))
@@ -508,7 +520,7 @@ bool vtkSSAOPass::PreReplaceShaderValues(std::string& vtkNotUsed(vertexShader),
   return true;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkSSAOPass::PostReplaceShaderValues(std::string& vtkNotUsed(vertexShader),
   std::string& vtkNotUsed(geometryShader), std::string& fragmentShader, vtkAbstractMapper* mapper,
   vtkProp* vtkNotUsed(prop))
@@ -537,7 +549,7 @@ bool vtkSSAOPass::PostReplaceShaderValues(std::string& vtkNotUsed(vertexShader),
   return true;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkSSAOPass::ReleaseGraphicsResources(vtkWindow* w)
 {
   this->Superclass::ReleaseGraphicsResources(w);

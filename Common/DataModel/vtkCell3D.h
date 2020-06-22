@@ -29,6 +29,7 @@
 
 #include "vtkCell.h"
 #include "vtkCommonDataModelModule.h" // For export macro
+#include "vtkDeprecation.h"           // For VTK_DEPRECATED_IN_9_0_0
 
 class vtkOrderedTriangulator;
 class vtkTetra;
@@ -50,7 +51,8 @@ public:
    */
   virtual void GetEdgePoints(vtkIdType edgeId, const vtkIdType*& pts) = 0;
   // @deprecated Replaced by GetEdgePoints(vtkIdType, const vtkIdType*&) as of VTK 9.0
-  VTK_LEGACY(virtual void GetEdgePoints(int edgeId, int*& pts) = 0;);
+  VTK_DEPRECATED_IN_9_0_0("Replaced by vtkCell::GetEdgePoints(vtkIdType, const vtkIdType*&)")
+  virtual void GetEdgePoints(int edgeId, int*& pts) = 0;
 
   /**
    * Get the list of vertices that define a face. The list is terminated
@@ -63,7 +65,8 @@ public:
    */
   virtual vtkIdType GetFacePoints(vtkIdType faceId, const vtkIdType*& pts) = 0;
   // @deprecated Replaced by GetFacePoints(vtkIdType, const vtkIdType*&) as of VTK 9.0
-  VTK_LEGACY(virtual void GetFacePoints(int faceId, int*& pts) = 0;);
+  VTK_DEPRECATED_IN_9_0_0("Replaced by vtkCell::GetFacePoints(vtkIdType, const vtkIdType*&)")
+  virtual void GetFacePoints(int faceId, int*& pts) = 0;
 
   /**
    * Get the ids of the two adjacent faces to edge of id edgeId.
@@ -175,6 +178,13 @@ public:
    * The topological dimension of the cell. (Satisfies vtkCell API.)
    */
   int GetCellDimension() override { return 3; }
+
+  /**
+   * Inflates the cell by dist. Each point is displaced by dist in the direction of every halfedge.
+   * Input can be negative. If so, the cell will shrink. Artifacts will appear if one shrinks
+   * with -dist larger than any edge length, probably causing the cell to self-intersect.
+   */
+  void Inflate(double dist) override;
 
   //@{
   /**

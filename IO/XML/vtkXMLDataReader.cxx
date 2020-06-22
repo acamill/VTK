@@ -38,7 +38,7 @@ class vtkXMLDataReader::MapStringToInt64 : public std::map<std::string, vtkTypeI
 {
 };
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXMLDataReader::vtkXMLDataReader()
   : PointDataTimeStep(new vtkXMLDataReader::MapStringToInt())
   , PointDataOffset(new vtkXMLDataReader::MapStringToInt64())
@@ -48,6 +48,7 @@ vtkXMLDataReader::vtkXMLDataReader()
   this->NumberOfPieces = 0;
   this->PointDataElements = nullptr;
   this->CellDataElements = nullptr;
+  this->TimeDataElements = nullptr;
   this->Piece = 0;
   this->NumberOfPointArrays = 0;
   this->NumberOfCellArrays = 0;
@@ -59,7 +60,7 @@ vtkXMLDataReader::vtkXMLDataReader()
   this->DataProgressObserver->SetClientData(this);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXMLDataReader::~vtkXMLDataReader()
 {
   if (this->XMLParser)
@@ -73,13 +74,13 @@ vtkXMLDataReader::~vtkXMLDataReader()
   this->DataProgressObserver->Delete();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::CreateXMLParser()
 {
   this->Superclass::CreateXMLParser();
@@ -90,7 +91,7 @@ void vtkXMLDataReader::CreateXMLParser()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::DestroyXMLParser()
 {
   if (this->XMLParser)
@@ -100,7 +101,7 @@ void vtkXMLDataReader::DestroyXMLParser()
   this->Superclass::DestroyXMLParser();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Note that any changes (add or removing information) made to this method
 // should be replicated in CopyOutputInformation
 void vtkXMLDataReader::SetupOutputInformation(vtkInformation* outInfo)
@@ -143,7 +144,7 @@ void vtkXMLDataReader::SetupOutputInformation(vtkInformation* outInfo)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::CopyOutputInformation(vtkInformation* outInfo, int port)
 {
   vtkInformation* localInfo = this->GetExecutive()->GetOutputInformation(port);
@@ -158,7 +159,7 @@ void vtkXMLDataReader::CopyOutputInformation(vtkInformation* outInfo, int port)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::ReadPrimaryElement(vtkXMLDataElement* ePrimary)
 {
   if (!this->Superclass::ReadPrimaryElement(ePrimary))
@@ -208,7 +209,7 @@ int vtkXMLDataReader::ReadPrimaryElement(vtkXMLDataElement* ePrimary)
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::SetupPieces(int numPieces)
 {
   if (this->NumberOfPieces)
@@ -220,25 +221,29 @@ void vtkXMLDataReader::SetupPieces(int numPieces)
   {
     this->PointDataElements = new vtkXMLDataElement*[numPieces];
     this->CellDataElements = new vtkXMLDataElement*[numPieces];
+    this->TimeDataElements = new vtkXMLDataElement*[numPieces];
   }
   for (int i = 0; i < this->NumberOfPieces; ++i)
   {
     this->PointDataElements[i] = nullptr;
     this->CellDataElements[i] = nullptr;
+    this->TimeDataElements[i] = nullptr;
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::DestroyPieces()
 {
   delete[] this->PointDataElements;
   delete[] this->CellDataElements;
+  delete[] this->TimeDataElements;
   this->PointDataElements = nullptr;
   this->CellDataElements = nullptr;
+  this->TimeDataElements = nullptr;
   this->NumberOfPieces = 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::SetupOutputData()
 {
   this->Superclass::SetupOutputData();
@@ -318,14 +323,14 @@ void vtkXMLDataReader::SetupOutputData()
   this->ReadAttributeIndices(eCellData, cellData);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::ReadPiece(vtkXMLDataElement* ePiece, int piece)
 {
   this->Piece = piece;
   return this->ReadPiece(ePiece);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::ReadPiece(vtkXMLDataElement* ePiece)
 {
   // Find the PointData and CellData in the piece.
@@ -344,14 +349,14 @@ int vtkXMLDataReader::ReadPiece(vtkXMLDataElement* ePiece)
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::ReadPieceData(int piece)
 {
   this->Piece = piece;
   return this->ReadPieceData();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::ReadPieceData()
 {
   vtkDataSet* output = vtkDataSet::SafeDownCast(this->GetCurrentOutput());
@@ -454,7 +459,7 @@ int vtkXMLDataReader::ReadPieceData()
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::ReadXMLData()
 {
   // Let superclasses read data.  This also allocates output data.
@@ -463,7 +468,7 @@ void vtkXMLDataReader::ReadXMLData()
   this->ReadFieldData();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::ReadArrayForPoints(vtkXMLDataElement* da, vtkAbstractArray* outArray)
 {
   vtkIdType components = outArray->GetNumberOfComponents();
@@ -471,7 +476,7 @@ int vtkXMLDataReader::ReadArrayForPoints(vtkXMLDataElement* da, vtkAbstractArray
   return this->ReadArrayValues(da, 0, outArray, 0, numberOfTuples * components, POINT_DATA);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::ReadArrayForCells(vtkXMLDataElement* da, vtkAbstractArray* outArray)
 {
   vtkIdType components = outArray->GetNumberOfComponents();
@@ -479,7 +484,7 @@ int vtkXMLDataReader::ReadArrayForCells(vtkXMLDataElement* da, vtkAbstractArray*
   return this->ReadArrayValues(da, 0, outArray, 0, numberOfTuples * components, CELL_DATA);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::ConvertGhostLevelsToGhostType(
   FieldType fieldType, vtkAbstractArray* data, vtkIdType startIndex, vtkIdType numValues)
 {
@@ -508,14 +513,14 @@ void vtkXMLDataReader::ConvertGhostLevelsToGhostType(
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::DataProgressCallbackFunction(
   vtkObject*, unsigned long, void* clientdata, void*)
 {
   reinterpret_cast<vtkXMLDataReader*>(clientdata)->DataProgressCallback();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXMLDataReader::DataProgressCallback()
 {
   if (this->InReadData)
@@ -531,7 +536,7 @@ void vtkXMLDataReader::DataProgressCallback()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::PointDataNeedToReadTimeStep(vtkXMLDataElement* eNested)
 {
   // First thing need to find the id of this dataarray from its name:
@@ -600,7 +605,7 @@ int vtkXMLDataReader::PointDataNeedToReadTimeStep(vtkXMLDataElement* eNested)
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXMLDataReader::CellDataNeedToReadTimeStep(vtkXMLDataElement* eNested)
 {
   // First thing need to find the id of this dataarray from its name:

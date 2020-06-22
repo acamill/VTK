@@ -57,6 +57,7 @@
 #define vtkFixedPointVolumeRayCastMapper_h
 
 #include "vtkRenderingVolumeModule.h" // For export macro
+#include "vtkThreads.h"               // for VTK_THREAD_RETURN_TYPE
 #include "vtkVolumeMapper.h"
 
 #define VTKKW_FP_SHIFT 15
@@ -357,10 +358,10 @@ protected:
 
   // Internal method for computing matrices needed during
   // ray casting
-  void ComputeMatrices(double volumeOrigin[3], double volumeSpacing[3], int volumeExtent[6],
+  void ComputeMatrices(double inputOrigin[3], double inputSpacing[3], int inputExtent[6],
     vtkRenderer* ren, vtkVolume* vol);
 
-  int ComputeRowBounds(vtkRenderer* ren, int imageFlag, int rowBoundsFlag, int volumeExtent[6]);
+  int ComputeRowBounds(vtkRenderer* ren, int imageFlag, int rowBoundsFlag, int inputExtent[6]);
 
   void CaptureZBuffer(vtkRenderer* ren);
 

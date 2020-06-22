@@ -523,6 +523,27 @@ public:
 
   /**
    * Compute distance squared between two points p1 and p2.
+   * This version allows for custom range and iterator types to be used. These
+   * types must implement `operator[]`, and at least one of them must have
+   * a `value_type` typedef.
+   *
+   * The first template parameter `ReturnTypeT` sets the return type of this method.
+   * By default, it is set to `double`, but it can be overridden.
+   *
+   * The `EnableT` template parameter is used to make sure that this version
+   * doesn't capture the `float*`, `float[]`, `double*`, `double[]` as
+   * those should go to the other `Distance2BetweenPoints` functions.
+   *
+   * @warning This method assumes that both parameters have 3 components.
+   */
+  template <typename ReturnTypeT = double, typename TupleRangeT1, typename TupleRangeT2,
+    typename EnableT = typename std::conditional<!std::is_pointer<TupleRangeT1>::value &&
+        !std::is_array<TupleRangeT1>::value,
+      TupleRangeT1, TupleRangeT2>::type::value_type>
+  static ReturnTypeT Distance2BetweenPoints(const TupleRangeT1& p1, const TupleRangeT2& p2);
+
+  /**
+   * Compute distance squared between two points p1 and p2.
    * (float version).
    */
   static float Distance2BetweenPoints(const float p1[3], const float p2[3]);
@@ -674,8 +695,8 @@ public:
   /**
    * Multiply a vector by a 3x3 matrix.  The result is placed in out.
    */
-  static void Multiply3x3(const float A[3][3], const float in[3], float out[3]);
-  static void Multiply3x3(const double A[3][3], const double in[3], double out[3]);
+  static void Multiply3x3(const float A[3][3], const float v[3], float u[3]);
+  static void Multiply3x3(const double A[3][3], const double v[3], double u[3]);
   //@}
 
   //@{
@@ -1259,8 +1280,8 @@ public:
   static int QuadraticRoot(double a, double b, double c, double min, double max, double* u);
 
 protected:
-  vtkMath() {}
-  ~vtkMath() override {}
+  vtkMath() = default;
+  ~vtkMath() override = default;
 
   static vtkSmartPointer<vtkMathInternal> Internal;
 
@@ -1437,6 +1458,14 @@ inline double vtkMath::Distance2BetweenPoints(const double p1[3], const double p
 }
 
 //----------------------------------------------------------------------------
+template <typename ReturnTypeT, typename TupleRangeT1, typename TupleRangeT2, typename EnableT>
+inline ReturnTypeT vtkMath::Distance2BetweenPoints(const TupleRangeT1& p1, const TupleRangeT2& p2)
+{
+  return ((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]) +
+    (p1[2] - p2[2]) * (p1[2] - p2[2]));
+}
+
+//----------------------------------------------------------------------------
 // Cross product of two 3-vectors. Result (a x b) is stored in c[3].
 inline void vtkMath::Cross(const float a[3], const float b[3], float c[3])
 {
@@ -1574,10 +1603,15 @@ namespace vtk_detail
 template <typename OutT>
 void RoundDoubleToIntegralIfNecessary(double val, OutT* ret)
 { // OutT is integral -- clamp and round
-  double min = static_cast<double>(vtkTypeTraits<OutT>::Min());
-  double max = static_cast<double>(vtkTypeTraits<OutT>::Max());
-  val = vtkMath::ClampValue(val, min, max);
-  *ret = static_cast<OutT>((val >= 0.0) ? (val + 0.5) : (val - 0.5));
+  if (!vtkMath::IsNan(val))
+  {
+    double min = static_cast<double>(vtkTypeTraits<OutT>::Min());
+    double max = static_cast<double>(vtkTypeTraits<OutT>::Max());
+    val = vtkMath::ClampValue(val, min, max);
+    *ret = static_cast<OutT>((val >= 0.0) ? (val + 0.5) : (val - 0.5));
+  }
+  else
+    *ret = 0;
 }
 template <>
 inline void RoundDoubleToIntegralIfNecessary(double val, double* retVal)
@@ -1587,10 +1621,15 @@ inline void RoundDoubleToIntegralIfNecessary(double val, double* retVal)
 template <>
 inline void RoundDoubleToIntegralIfNecessary(double val, float* retVal)
 { // OutT is float -- just clamp (as doubles, then the cast to float is well-defined.)
-  double min = static_cast<double>(vtkTypeTraits<float>::Min());
-  double max = static_cast<double>(vtkTypeTraits<float>::Max());
-  val = vtkMath::ClampValue(val, min, max);
-  *retVal = static_cast<float>(val);
+  if (!vtkMath::IsNan(val))
+  {
+    double min = static_cast<double>(vtkTypeTraits<float>::Min());
+    double max = static_cast<double>(vtkTypeTraits<float>::Max());
+    val = vtkMath::ClampValue(val, min, max);
+    *retVal = static_cast<float>(val);
+  }
+  else
+    *retVal = val;
 }
 } // end namespace vtk_detail
 

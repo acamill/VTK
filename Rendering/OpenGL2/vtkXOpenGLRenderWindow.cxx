@@ -47,6 +47,7 @@ typedef ptrdiff_t GLsizeiptr;
 
 #include "vtkCommand.h"
 #include "vtkIdList.h"
+#include "vtkImageData.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkOpenGLShaderCache.h"
@@ -61,6 +62,7 @@ typedef ptrdiff_t GLsizeiptr;
 
 #include <sstream>
 
+#include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
@@ -1086,7 +1088,7 @@ void vtkXOpenGLRenderWindow::MakeCurrent()
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Tells if this window is the current OpenGL context for the calling thread.
 bool vtkXOpenGLRenderWindow::IsCurrent()
@@ -1471,6 +1473,50 @@ void vtkXOpenGLRenderWindow::SetWindowName(const char* cname)
   delete[] name;
 }
 
+void vtkXOpenGLRenderWindow::SetIcon(vtkImageData* img)
+{
+  int dim[3];
+  img->GetDimensions(dim);
+
+  int nbComp = img->GetNumberOfScalarComponents();
+
+  if (img->GetScalarType() != VTK_UNSIGNED_CHAR || dim[2] != 1 || nbComp < 3 || nbComp > 4)
+  {
+    vtkErrorMacro(
+      "Icon image should be 2D, have 3 or 4 components, and its type must be unsigned char.");
+    return;
+  }
+
+  unsigned char* imgScalars = static_cast<unsigned char*>(img->GetScalarPointer());
+
+  std::vector<unsigned long> pixels(2 + dim[0] * dim[1]);
+  pixels[0] = dim[0];
+  pixels[1] = dim[1];
+
+  // Convert vtkImageData buffer to X icon.
+  // We need to flip Y and use ARGB 32-bits encoded convention
+  for (int col = 0; col < dim[1]; col++)
+  {
+    for (int line = 0; line < dim[0]; line++)
+    {
+      unsigned char* inPixel = imgScalars + nbComp * ((dim[0] - col - 1) * dim[1] + line); // flip Y
+      unsigned long* outPixel = pixels.data() + col * dim[1] + line + 2;
+      if (nbComp == 4)
+      {
+        *outPixel = nbComp == 4 ? inPixel[3] : 0xff;
+      }
+      *outPixel = (*outPixel << 8) + inPixel[0];
+      *outPixel = (*outPixel << 8) + inPixel[1];
+      *outPixel = (*outPixel << 8) + inPixel[2];
+    }
+  }
+
+  Atom iconAtom = XInternAtom(this->DisplayId, "_NET_WM_ICON", False);
+  Atom typeAtom = XInternAtom(this->DisplayId, "CARDINAL", False);
+  XChangeProperty(this->DisplayId, this->WindowId, iconAtom, typeAtom, 32, PropModeReplace,
+    reinterpret_cast<unsigned char*>(pixels.data()), pixels.size());
+}
+
 // Specify the X window id to use if a WindowRemap is done.
 void vtkXOpenGLRenderWindow::SetNextWindowId(Window arg)
 {
@@ -1519,7 +1565,7 @@ void vtkXOpenGLRenderWindow::Render()
   this->vtkOpenGLRenderWindow::Render();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXOpenGLRenderWindow::HideCursor()
 {
   static char blankBits[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1547,7 +1593,7 @@ void vtkXOpenGLRenderWindow::HideCursor()
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXOpenGLRenderWindow::ShowCursor()
 {
   if (!this->DisplayId || !this->WindowId)

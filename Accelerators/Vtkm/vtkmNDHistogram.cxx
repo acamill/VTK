@@ -68,10 +68,10 @@ void vtkmNDHistogram::PrintSelf(std::ostream& os, vtkIndent indent)
 }
 
 //------------------------------------------------------------------------------
-vtkmNDHistogram::vtkmNDHistogram() {}
+vtkmNDHistogram::vtkmNDHistogram() = default;
 
 //------------------------------------------------------------------------------
-vtkmNDHistogram::~vtkmNDHistogram() {}
+vtkmNDHistogram::~vtkmNDHistogram() = default;
 
 //------------------------------------------------------------------------------
 void vtkmNDHistogram::AddFieldAndBin(const std::string& fieldName, const vtkIdType& numberOfBins)
@@ -125,13 +125,12 @@ int vtkmNDHistogram::RequestData(vtkInformation* vtkNotUsed(request),
   {
     vtkm::cont::DataSet in = tovtkm::Convert(input, tovtkm::FieldsFlag::PointsAndCells);
 
-    vtkmInputFilterPolicy policy;
     vtkm::filter::NDHistogram filter;
     for (size_t i = 0; i < this->FieldNames.size(); i++)
     {
       filter.AddFieldAndBin(this->FieldNames[i], this->NumberOfBins[i]);
     }
-    vtkm::cont::DataSet out = filter.Execute(in, policy);
+    vtkm::cont::DataSet out = filter.Execute(in);
 
     vtkm::Id numberOfFields = out.GetNumberOfFields();
     this->BinDeltas.clear();
@@ -148,8 +147,7 @@ int vtkmNDHistogram::RequestData(vtkInformation* vtkNotUsed(request),
       fnArray->SetName(fn.c_str());
       fArrays.push_back(fnArray);
       this->BinDeltas.push_back(filter.GetBinDelta(index));
-      this->DataRanges.push_back(
-        std::make_pair(filter.GetDataRange(index).Min, filter.GetDataRange(index).Max));
+      this->DataRanges.emplace_back(filter.GetDataRange(index).Min, filter.GetDataRange(index).Max);
       index++;
     }
     vtkDataArray* frequencyArray = fromvtkm::Convert(out.GetField("Frequency"));

@@ -523,11 +523,10 @@ endif ()
 ~~~
 #]==]
 function (vtk_module_scan)
-  cmake_parse_arguments(_vtk_scan
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_scan
     ""
     "WANT_BY_DEFAULT;HIDE_MODULES_FROM_CACHE;PROVIDES_MODULES;REQUIRES_MODULES;UNRECOGNIZED_MODULES;ENABLE_TESTS;PROVIDES_KITS"
-    "MODULE_FILES;KIT_FILES;REQUEST_MODULES;REJECT_MODULES"
-    ${ARGN})
+    "MODULE_FILES;KIT_FILES;REQUEST_MODULES;REJECT_MODULES")
 
   if (_vtk_scan_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -580,7 +579,7 @@ function (vtk_module_scan)
 
   foreach (_vtk_scan_kit_file IN LISTS _vtk_scan_KIT_FILES)
     if (NOT IS_ABSOLUTE "${_vtk_scan_kit_file}")
-      set(_vtk_scan_kit_file "${CMAKE_CURRENT_SOURCE_DIR}/${_vtk_scan_kit_file}")
+      string(PREPEND _vtk_scan_kit_file "${CMAKE_CURRENT_SOURCE_DIR}/")
     endif ()
     set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" APPEND
       PROPERTY
@@ -616,7 +615,7 @@ function (vtk_module_scan)
   # Read all of the module files passed in.
   foreach (_vtk_scan_module_file IN LISTS _vtk_scan_MODULE_FILES)
     if (NOT IS_ABSOLUTE "${_vtk_scan_module_file}")
-      set(_vtk_scan_module_file "${CMAKE_CURRENT_SOURCE_DIR}/${_vtk_scan_module_file}")
+      string(PREPEND _vtk_scan_module_file "${CMAKE_CURRENT_SOURCE_DIR}/")
     endif ()
     set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" APPEND
       PROPERTY
@@ -1114,11 +1113,11 @@ function (_vtk_module_real_target var module)
       get_property(_vtk_real_target_kit GLOBAL
         PROPERTY "_vtk_module_${module}_kit")
       if (_vtk_real_target_kit)
-        set(_vtk_real_target_res "${_vtk_real_target_res}-objects")
+        string(APPEND _vtk_real_target_res "-objects")
       endif ()
     # A query for after the module is built.
     elseif (TARGET "${_vtk_real_target_res}-objects")
-      set(_vtk_real_target_res "${_vtk_real_target_res}-objects")
+      string(APPEND _vtk_real_target_res "-objects")
     endif ()
   endif ()
 
@@ -1219,11 +1218,10 @@ vtk_module_set_property(<module>
 ~~~
 #]==]
 function (vtk_module_set_property module)
-  cmake_parse_arguments(_vtk_property
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_property
     "APPEND;APPEND_STRING"
     "PROPERTY"
-    "VALUE"
-    ${ARGN})
+    "VALUE")
 
   if (_vtk_property_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1280,11 +1278,10 @@ The variable name passed to the `VARIABLE` argument will be unset if the
 property is not set (rather than the empty string).
 #]==]
 function (vtk_module_get_property module)
-  cmake_parse_arguments(_vtk_property
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_property
     ""
     "PROPERTY;VARIABLE"
-    ""
-    ${ARGN})
+    "")
 
   if (_vtk_property_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1375,11 +1372,10 @@ vtk_module_include(<module>
 ~~~
 #]==]
 function (vtk_module_include module)
-  cmake_parse_arguments(_vtk_include
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_include
     "SYSTEM"
     ""
-    "INTERFACE;PUBLIC;PRIVATE"
-    ${ARGN})
+    "INTERFACE;PUBLIC;PRIVATE")
 
   if (_vtk_include_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1416,11 +1412,10 @@ vtk_module_definitions(<module>
 ~~~
 #]==]
 function (vtk_module_definitions module)
-  cmake_parse_arguments(_vtk_definitions
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_definitions
     ""
     ""
-    "INTERFACE;PUBLIC;PRIVATE"
-    ${ARGN})
+    "INTERFACE;PUBLIC;PRIVATE")
 
   if (_vtk_definitions_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1451,11 +1446,10 @@ vtk_module_compile_options(<module>
 ~~~
 #]==]
 function (vtk_module_compile_options module)
-  cmake_parse_arguments(_vtk_compile_options
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_compile_options
     ""
     ""
-    "INTERFACE;PUBLIC;PRIVATE"
-    ${ARGN})
+    "INTERFACE;PUBLIC;PRIVATE")
 
   if (_vtk_compile_options_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1486,11 +1480,10 @@ vtk_module_compile_features(<module>
 ~~~
 #]==]
 function (vtk_module_compile_features module)
-  cmake_parse_arguments(_vtk_compile_features
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_compile_features
     ""
     ""
-    "INTERFACE;PUBLIC;PRIVATE"
-    ${ARGN})
+    "INTERFACE;PUBLIC;PRIVATE")
 
   if (_vtk_compile_features_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1523,11 +1516,10 @@ vtk_module_link(<module>
 ~~~
 #]==]
 function (vtk_module_link module)
-  cmake_parse_arguments(_vtk_link
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_link
     ""
     ""
-    "INTERFACE;PUBLIC;PRIVATE"
-    ${ARGN})
+    "INTERFACE;PUBLIC;PRIVATE")
 
   if (_vtk_link_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1540,7 +1532,7 @@ function (vtk_module_link module)
 
   get_property(_vtk_link_kit GLOBAL
     PROPERTY "_vtk_module_${module}_kit")
-  if (_vtk_link_kit AND NOT CMAKE_VERSION VERSION_LESS "3.12")
+  if (_vtk_link_kit)
     foreach (_vtk_link_private IN LISTS _vtk_link_PRIVATE)
       if (NOT TARGET "${_vtk_link_private}")
         continue ()
@@ -1585,11 +1577,10 @@ vtk_module_link_options(<module>
 ~~~
 #]==]
 function (vtk_module_link_options module)
-  cmake_parse_arguments(_vtk_link_options
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_link_options
     ""
     ""
-    "INTERFACE;PUBLIC;PRIVATE"
-    ${ARGN})
+    "INTERFACE;PUBLIC;PRIVATE")
 
   if (_vtk_link_options_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1687,11 +1678,10 @@ _vtk_module_set_module_property(<module>
 ~~~
 #]==]
 function (_vtk_module_set_module_property module)
-  cmake_parse_arguments(_vtk_property
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_property
     "APPEND;APPEND_STRING"
     "PROPERTY"
-    "VALUE"
-    ${ARGN})
+    "VALUE")
 
   if (_vtk_property_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1757,11 +1747,10 @@ property is not set. The property name is automatically prepended with the
 required prefix.
 #]==]
 function (_vtk_module_get_module_property module)
-  cmake_parse_arguments(_vtk_property
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_property
     ""
     "PROPERTY;VARIABLE"
-    ""
-    ${ARGN})
+    "")
 
   if (_vtk_property_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -1919,11 +1908,10 @@ The set of properties exported is computed as follows:
     change between the build and installation.
 #]==]
 function (_vtk_module_export_properties)
-  cmake_parse_arguments(_vtk_export_properties
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_export_properties
     ""
     "BUILD_FILE;INSTALL_FILE;MODULE;KIT"
-    "FROM_GLOBAL_PROPERTIES;PROPERTIES;SPLIT_INSTALL_PROPERTIES"
-    ${ARGN})
+    "FROM_GLOBAL_PROPERTIES;PROPERTIES;SPLIT_INSTALL_PROPERTIES")
 
   if (_vtk_export_properties_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -2066,6 +2054,8 @@ vtk_module_build(
   [TARGETS_COMPONENT  <component>]
   [INSTALL_EXPORT     <export>]
 
+  [TARGET_SPECIFIC_COMPONENTS <ON|OFF>]
+
   [TEST_DIRECTORY_NAME        <name>]
   [TEST_DATA_TARGET           <target>]
   [TEST_INPUT_DATA_DIRECTORY  <directory>]
@@ -2109,6 +2099,8 @@ have reasonable defaults if not specified.
     component (e.g., CMake module files).
   * `TARGETS_COMPONENT`: `Defaults to `runtime`) The install component to use
     for the libraries built.
+  * `TARGET_SPECIFIC_COMPONENTS`: (Defaults to `OFF`) If `ON`, place artifacts
+    into target-specific install components (`<TARGET>-<COMPONENT>`).
   * `TARGET_NAMESPACE`: `Defaults to `\<AUTO\>`) The namespace for installed
     targets. All targets must have the same namespace. If set to `\<AUTO\>`,
     the namespace will be detected automatically.
@@ -2181,11 +2173,10 @@ function (vtk_module_build)
   # TODO: Add an option to build statically? Currently, `BUILD_SHARED_LIBS` is
   # used.
 
-  cmake_parse_arguments(_vtk_build
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_build
     ""
-    "BUILD_WITH_KITS;USE_EXTERNAL;LIBRARY_NAME_SUFFIX;VERSION;SOVERSION;PACKAGE;ENABLE_WRAPPING;${_vtk_build_install_arguments};${_vtk_build_test_arguments}"
-    "MODULES;KITS"
-    ${ARGN})
+    "BUILD_WITH_KITS;USE_EXTERNAL;TARGET_SPECIFIC_COMPONENTS;LIBRARY_NAME_SUFFIX;VERSION;SOVERSION;PACKAGE;ENABLE_WRAPPING;${_vtk_build_install_arguments};${_vtk_build_test_arguments}"
+    "MODULES;KITS")
 
   if (_vtk_build_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -2195,6 +2186,10 @@ function (vtk_module_build)
 
   if (NOT DEFINED _vtk_build_USE_EXTERNAL)
     set(_vtk_build_USE_EXTERNAL OFF)
+  endif ()
+
+  if (NOT DEFINED _vtk_build_TARGET_SPECIFIC_COMPONENTS)
+    set(_vtk_build_TARGET_SPECIFIC_COMPONENTS OFF)
   endif ()
 
   if (NOT DEFINED _vtk_build_PACKAGE)
@@ -2232,12 +2227,6 @@ function (vtk_module_build)
 
   if (NOT DEFINED _vtk_build_BUILD_WITH_KITS)
     set(_vtk_build_BUILD_WITH_KITS OFF)
-  endif ()
-
-  if (_vtk_build_BUILD_WITH_KITS AND CMAKE_VERSION VERSION_LESS "3.12")
-    message(FATAL_ERROR
-      "Building with kits enabled requires CMake 3.12 which introduced "
-      "support for OBJECT libraries to have and utilize usage requirements.")
   endif ()
 
   if (_vtk_build_BUILD_WITH_KITS AND NOT DEFINED _vtk_build_KITS)
@@ -2682,11 +2671,10 @@ _vtk_module_standard_includes(
 ~~~
 #]==]
 function (_vtk_module_standard_includes)
-  cmake_parse_arguments(_vtk_standard_includes
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_standard_includes
     "SYSTEM;INTERFACE"
     "TARGET;HEADERS_DESTINATION"
-    ""
-    ${ARGN})
+    "")
 
   if (NOT _vtk_standard_includes_TARGET)
     message(FATAL_ERROR
@@ -2826,11 +2814,10 @@ After this call, the targets given to the `TARGETS` argument will gain the
 preprocessor definitions to trigger registrations properly.
 #]==]
 function (vtk_module_autoinit)
-  cmake_parse_arguments(_vtk_autoinit
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_autoinit
     ""
     ""
-    "TARGETS;MODULES"
-    ${ARGN})
+    "TARGETS;MODULES")
 
   if (_vtk_autoinit_UNRECOGNIZED_ARGUMENTS)
     message(FATAL_ERROR
@@ -2841,6 +2828,11 @@ function (vtk_module_autoinit)
   if (NOT _vtk_autoinit_TARGETS)
     message(FATAL_ERROR
       "The `TARGETS` argument is required.")
+  endif ()
+
+  if (NOT _vtk_autoinit_MODULES)
+    message(AUTHOR_WARNING
+      "No `MODULES` passed to `vtk_modules_autoinit`.")
   endif ()
 
   set(_vtk_autoinit_module_stack
@@ -2989,7 +2981,7 @@ function (_vtk_module_write_wrap_hierarchy)
 
   set(_vtk_add_module_target_name_iface "${_vtk_add_module_target_name}")
   if (_vtk_add_module_build_with_kit)
-    set(_vtk_add_module_target_name_iface "${_vtk_add_module_target_name}-objects")
+    string(APPEND _vtk_add_module_target_name_iface "-objects")
   endif ()
   set(_vtk_hierarchy_genex_compile_definitions
     "$<TARGET_PROPERTY:${_vtk_add_module_target_name_iface},COMPILE_DEFINITIONS>")
@@ -3110,6 +3102,17 @@ $<$<BOOL:${_vtk_hierarchy_genex_include_directories}>:\n-I\'$<JOIN:${_vtk_hierar
       "INTERFACE_vtk_module_hierarchy" "${_vtk_hierarchy_file}")
 
   if (_vtk_build_INSTALL_HEADERS)
+    set(_vtk_hierarchy_headers_component "${_vtk_build_HEADERS_COMPONENT}")
+    if (_vtk_build_TARGET_SPECIFIC_COMPONENTS)
+      string(PREPEND _vtk_hierarchy_headers_component "${_vtk_build_module}-")
+      if (_vtk_build_BUILD_WITH_KITS)
+        get_property(_vtk_hierarchy_build_with_kit GLOBAL
+          PROPERTY "_vtk_module_${_vtk_build_module}_kit")
+        if (_vtk_hierarchy_build_with_kit)
+          set(_vtk_hierarchy_headers_component "${_vtk_hierarchy_build_with_kit}-${_vtk_build_HEADERS_COMPONENT}")
+        endif ()
+      endif ()
+    endif ()
     set_property(TARGET "${_vtk_add_module_real_target}"
       PROPERTY
         "INTERFACE_vtk_module_hierarchy_install" "\${_vtk_module_import_prefix}/${_vtk_build_HIERARCHY_DESTINATION}/${_vtk_hierarchy_filename}")
@@ -3117,7 +3120,7 @@ $<$<BOOL:${_vtk_hierarchy_genex_include_directories}>:\n-I\'$<JOIN:${_vtk_hierar
       FILES       "${_vtk_hierarchy_file}"
       DESTINATION "${_vtk_build_HIERARCHY_DESTINATION}"
       RENAME      "${_vtk_hierarchy_filename}"
-      COMPONENT   "${_vtk_build_HEADERS_COMPONENT}")
+      COMPONENT   "${_vtk_hierarchy_headers_component}")
   endif ()
 endfunction ()
 
@@ -3137,6 +3140,7 @@ vtk_module_add_module(<name>
   [TEMPLATE_CLASSES         <template class>...]
   [SOURCES                  <source>...]
   [HEADERS                  <header>...]
+  [NOWRAP_HEADERS           <header>...]
   [TEMPLATES                <template>...]
   [PRIVATE_CLASSES          <class>...]
   [PRIVATE_TEMPLATE_CLASSES <template class>...]
@@ -3166,6 +3170,8 @@ always private, so there is no `PRIVATE_` variant for that argument).
   * `SOURCES`: A list of source files which require compilation.
   * `HEADERS`: A list of header files which will be available for wrapping and
     installed.
+  * `NOWRAP_HEADERS`: A list of header files which will not be available for
+    wrapping but installed.
   * `TEMPLATES`: A list of template files which will be installed.
 #]==]
 function (vtk_module_add_module name)
@@ -3181,11 +3187,10 @@ function (vtk_module_add_module name)
       "PRIVATE_${_vtk_add_module_kind}")
   endforeach ()
 
-  cmake_parse_arguments(_vtk_add_module
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_add_module
     "FORCE_STATIC;HEADER_ONLY"
     "EXPORT_MACRO_PREFIX;HEADERS_SUBDIR;LIBRARY_NAME_SUFFIX"
-    "${_vtk_add_module_source_keywords};SOURCES"
-    ${ARGN})
+    "${_vtk_add_module_source_keywords};SOURCES;NOWRAP_HEADERS")
 
   if (_vtk_add_module_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -3252,6 +3257,7 @@ function (vtk_module_add_module name)
 
   vtk_module_install_headers(
     FILES   ${_vtk_add_module_HEADERS}
+            ${_vtk_add_module_NOWRAP_HEADERS}
             ${_vtk_add_module_TEMPLATES}
     SUBDIR  "${_vtk_add_module_HEADERS_SUBDIR}")
 
@@ -3279,8 +3285,6 @@ function (vtk_module_add_module name)
         "belong in kits.")
     endif ()
 
-    # XXX(cmake-3.12.0): This unset is no longer necessary when 3.12.0 is required.
-    unset("${_vtk_build_module}_LIB_DEPENDS" CACHE)
     add_library("${_vtk_add_module_real_target}" INTERFACE)
 
     if (NOT _vtk_build_module STREQUAL _vtk_add_module_real_target)
@@ -3307,13 +3311,12 @@ function (vtk_module_add_module name)
         PROPERTY
           "INTERFACE_vtk_module_library_name" "${_vtk_add_module_library_name}")
 
-      # XXX(cmake-3.12.0): This unset is no longer necessary when 3.12.0 is required.
-      unset("${_vtk_build_module}_LIB_DEPENDS" CACHE)
       add_library("${_vtk_add_module_real_target}-objects" OBJECT
         ${_vtk_add_module_SOURCES}
         ${_vtk_add_module_TEMPLATES}
         ${_vtk_add_module_PRIVATE_TEMPLATES}
         ${_vtk_add_module_HEADERS}
+        ${_vtk_add_module_NOWRAP_HEADERS}
         ${_vtk_add_module_PRIVATE_HEADERS})
       set_target_properties("${_vtk_add_module_real_target}-objects"
         PROPERTIES
@@ -3323,7 +3326,7 @@ function (vtk_module_add_module name)
       target_compile_definitions("${_vtk_add_module_real_target}-objects"
         PRIVATE
           "${_vtk_add_module_real_target}_EXPORT")
-      set(_vtk_add_module_real_target "${_vtk_add_module_real_target}-objects")
+      string(APPEND _vtk_add_module_real_target "-objects")
     else ()
       add_library("${_vtk_add_module_real_target}" ${_vtk_add_module_type}
         ${_vtk_add_module_SOURCES}
@@ -3582,8 +3585,8 @@ function (vtk_module_add_module name)
 
   set(_vtk_add_module_autoinit_content)
   if (_vtk_add_module_autoinit_depends_includes)
-    set(_vtk_add_module_autoinit_content
-      "${_vtk_add_module_autoinit_content}/* AutoInit dependencies. */\n${_vtk_add_module_autoinit_depends_includes}\n")
+    string(APPEND _vtk_add_module_autoinit_content
+      "/* AutoInit dependencies. */\n${_vtk_add_module_autoinit_depends_includes}\n")
   endif ()
 
   get_property(_vtk_add_module_implementable GLOBAL
@@ -3604,8 +3607,8 @@ function (vtk_module_add_module name)
       PROPERTY
         "INTERFACE_vtk_module_needs_autoinit" 1)
 
-    set(_vtk_add_module_autoinit_content
-      "${_vtk_add_module_autoinit_content}
+    string(APPEND _vtk_add_module_autoinit_content
+      "
 /* AutoInit implementations. */
 #ifdef ${_vtk_add_module_library_name}_AUTOINIT_INCLUDE
 #include ${_vtk_add_module_library_name}_AUTOINIT_INCLUDE
@@ -3616,8 +3619,8 @@ VTK_MODULE_AUTOINIT(${_vtk_add_module_library_name})
 #endif
 ")
 
-    set(_vtk_add_module_module_content
-      "${_vtk_add_module_module_content}${_vtk_add_module_autoinit_content}")
+    string(APPEND _vtk_add_module_module_content
+      "${_vtk_add_module_autoinit_content}")
   endif ()
 
   if (NOT _vtk_add_module_HEADER_ONLY AND NOT _vtk_add_module_third_party)
@@ -3709,11 +3712,10 @@ Installation of header directories follows CMake's `install` function semantics
 with respect to trailing slashes.
 #]==]
 function (vtk_module_install_headers)
-  cmake_parse_arguments(_vtk_install_headers
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_install_headers
     ""
     "SUBDIR"
-    "FILES;DIRECTORIES"
-    ${ARGN})
+    "FILES;DIRECTORIES")
 
   if (_vtk_install_headers_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -3731,17 +3733,28 @@ function (vtk_module_install_headers)
 
   set(_vtk_install_headers_destination
     "${_vtk_build_HEADERS_DESTINATION}/${_vtk_install_headers_SUBDIR}")
+  set(_vtk_install_headers_headers_component "${_vtk_build_HEADERS_COMPONENT}")
+  if (_vtk_build_TARGET_SPECIFIC_COMPONENTS)
+    string(PREPEND _vtk_install_headers_headers_component "${_vtk_build_module}-")
+    if (_vtk_build_BUILD_WITH_KITS)
+      get_property(_vtk_install_headers_build_with_kit GLOBAL
+        PROPERTY "_vtk_module_${_vtk_build_module}_kit")
+      if (_vtk_install_headers_build_with_kit)
+        set(_vtk_install_headers_headers_component "${_vtk_install_headers_build_with_kit}-${_vtk_build_HEADERS_COMPONENT}")
+      endif ()
+    endif ()
+  endif ()
   if (_vtk_install_headers_FILES)
     install(
       FILES       ${_vtk_install_headers_FILES}
       DESTINATION "${_vtk_install_headers_destination}"
-      COMPONENT   "${_vtk_build_HEADERS_COMPONENT}")
+      COMPONENT   "${_vtk_install_headers_headers_component}")
   endif ()
   foreach (_vtk_install_headers_directory IN LISTS _vtk_install_headers_DIRECTORIES)
     install(
       DIRECTORY   "${_vtk_install_headers_directory}"
       DESTINATION "${_vtk_install_headers_destination}"
-      COMPONENT   "${_vtk_build_HEADERS_COMPONENT}")
+      COMPONENT   "${_vtk_install_headers_headers_component}")
   endforeach ()
 endfunction ()
 
@@ -3771,11 +3784,10 @@ The following target properties are set based on the arguments to the calling
   - `DEBUG_POSTFIX` (on Windows)
 #]==]
 function (_vtk_module_apply_properties target)
-  cmake_parse_arguments(_vtk_apply_properties
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_apply_properties
     ""
     "BASENAME"
-    ""
-    ${ARGN})
+    "")
 
   if (_vtk_apply_properties_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -3848,29 +3860,44 @@ function to keep the install uniform.
 function (_vtk_module_install target)
   set(_vtk_install_export)
   if (_vtk_build_INSTALL_EXPORT)
-    set(_vtk_install_export
+    list(APPEND _vtk_install_export
       EXPORT "${_vtk_build_INSTALL_EXPORT}")
   endif ()
 
-  set(_vtk_install_namelink_args)
-  if(NOT CMAKE_VERSION VERSION_LESS 3.12)
-    list(APPEND _vtk_install_namelink_args
-      NAMELINK_COMPONENT "${_vtk_build_HEADERS_COMPONENT}")
-  endif()
+  set(_vtk_install_headers_component "${_vtk_build_HEADERS_COMPONENT}")
+  set(_vtk_install_targets_component "${_vtk_build_TARGETS_COMPONENT}")
+  if (_vtk_build_TARGET_SPECIFIC_COMPONENTS)
+    if (_vtk_build_kit)
+      string(PREPEND _vtk_install_headers_component "${_vtk_build_kit}-")
+      string(PREPEND _vtk_install_targets_component "${_vtk_build_kit}-")
+    else ()
+      string(PREPEND _vtk_install_headers_component "${_vtk_build_module}-")
+      string(PREPEND _vtk_install_targets_component "${_vtk_build_module}-")
+      if (_vtk_build_BUILD_WITH_KITS)
+        get_property(_vtk_install_kit GLOBAL
+          PROPERTY "_vtk_module_${_vtk_build_module}_kit")
+        if (_vtk_install_kit)
+          set(_vtk_install_headers_component "${_vtk_install_kit}-${_vtk_build_HEADERS_COMPONENT}")
+          set(_vtk_install_targets_component "${_vtk_install_kit}-${_vtk_build_TARGETS_COMPONENT}")
+        endif ()
+      endif ()
+    endif ()
+  endif ()
+
   install(
     TARGETS             "${target}"
     ${_vtk_install_export}
     ${ARGN}
     ARCHIVE
       DESTINATION "${_vtk_build_ARCHIVE_DESTINATION}"
-      COMPONENT   "${_vtk_build_HEADERS_COMPONENT}"
+      COMPONENT   "${_vtk_install_headers_component}"
     LIBRARY
       DESTINATION "${_vtk_build_LIBRARY_DESTINATION}"
-      COMPONENT   "${_vtk_build_TARGETS_COMPONENT}"
-      ${_vtk_install_namelink_args}
+      COMPONENT   "${_vtk_install_targets_component}"
+      NAMELINK_COMPONENT "${_vtk_build_HEADERS_COMPONENT}"
     RUNTIME
       DESTINATION "${_vtk_build_RUNTIME_DESTINATION}"
-      COMPONENT   "${_vtk_build_TARGETS_COMPONENT}")
+      COMPONENT   "${_vtk_install_targets_component}")
 endfunction ()
 
 #[==[
@@ -3903,11 +3930,10 @@ rather than `BASENAME`. In addition, the dependencies of the module will be
 linked.
 #]==]
 function (vtk_module_add_executable name)
-  cmake_parse_arguments(_vtk_add_executable
+  cmake_parse_arguments(PARSE_ARGV 1 _vtk_add_executable
     "NO_INSTALL;DEVELOPMENT"
     "BASENAME"
-    ""
-    ${ARGN})
+    "")
 
   if (NOT _vtk_add_executable_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -4261,11 +4287,10 @@ The `vtk_module_find_package` calls made by the modules listed in `MODULES`
 will be exported to this file.
 #]==]
 function (vtk_module_export_find_packages)
-  cmake_parse_arguments(_vtk_export
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_export
     ""
     "CMAKE_DESTINATION;FILE_NAME;COMPONENT"
-    "MODULES"
-    ${ARGN})
+    "MODULES")
 
   if (_vtk_export_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -4533,11 +4558,10 @@ functions for the arguments supported by the `EXTERNAL` and `INTERNAL`
 arguments, respectively.
 #]==]
 function (vtk_module_third_party)
-  cmake_parse_arguments(_vtk_third_party
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_third_party
     ""
     ""
-    "INTERNAL;EXTERNAL"
-    ${ARGN})
+    "INTERNAL;EXTERNAL")
 
   if (_vtk_third_party_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -4557,10 +4581,6 @@ function (vtk_module_third_party)
     PARENT_SCOPE)
 
   if (VTK_MODULE_USE_EXTERNAL_${_vtk_build_module_safe})
-    # XXX(cmake): https://gitlab.kitware.com/cmake/cmake/issues/16364.
-    # Unset a variable which CMake doesn't like when switching between real
-    # libraries (internal) and interface libraries (external).
-    unset("${_vtk_build_module}_LIB_DEPENDS" CACHE)
     vtk_module_third_party_external(${_vtk_third_party_EXTERNAL})
 
     # Bubble up variables again.
@@ -4645,11 +4665,10 @@ Only the `PACKAGE` argument is required. The arguments are as follows:
     available to the caller.
 #]==]
 function (vtk_module_third_party_external)
-  cmake_parse_arguments(_vtk_third_party_external
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_third_party_external
     "STANDARD_INCLUDE_DIRS;CONFIG_MODE"
     "VERSION;PACKAGE;FORWARD_VERSION_REQ;VERSION_VAR"
-    "COMPONENTS;OPTIONAL_COMPONENTS;LIBRARIES;INCLUDE_DIRS;DEFINITIONS;TARGETS;USE_VARIABLES"
-    ${ARGN})
+    "COMPONENTS;OPTIONAL_COMPONENTS;LIBRARIES;INCLUDE_DIRS;DEFINITIONS;TARGETS;USE_VARIABLES")
 
   if (_vtk_third_party_external_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -4907,11 +4926,10 @@ function (vtk_module_third_party_internal)
   # TODO: Support scanning for third-party modules which don't support an
   # external copy.
 
-  cmake_parse_arguments(_vtk_third_party_internal
+  cmake_parse_arguments(PARSE_ARGV 0 _vtk_third_party_internal
     "INTERFACE;HEADER_ONLY;STANDARD_INCLUDE_DIRS"
     "SUBDIRECTORY;HEADERS_SUBDIR;VERSION"
-    "LICENSE_FILES"
-    ${ARGN})
+    "LICENSE_FILES")
 
   if (_vtk_third_party_internal_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR
@@ -4983,10 +5001,14 @@ function (vtk_module_third_party_internal)
   endif ()
 
   if (_vtk_third_party_internal_LICENSE_FILES)
+    set(_vtk_third_party_internal_license_component "license")
+    if (_vtk_build_TARGET_SPECIFIC_COMPONENTS)
+      string(PREPEND _vtk_third_party_internal_license_component "${_vtk_build_module}-")
+    endif ()
     install(
       FILES       ${_vtk_third_party_internal_LICENSE_FILES}
       DESTINATION "${_vtk_build_LICENSE_DESTINATION}/${_vtk_third_party_internal_library_name}/"
-      COMPONENT   "license")
+      COMPONENT   "${_vtk_third_party_internal_license_component}")
   endif ()
 
   _vtk_module_mark_third_party("${_vtk_third_party_internal_target_name}")

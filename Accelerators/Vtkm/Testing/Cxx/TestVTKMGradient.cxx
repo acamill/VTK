@@ -37,7 +37,7 @@ namespace
 {
 double Tolerance = 0.00001;
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int IsGradientCorrect(vtkDoubleArray* gradients, vtkDoubleArray* correct)
 {
   int numberOfComponents = gradients->GetNumberOfComponents();
@@ -91,7 +91,7 @@ int IsGradientCorrect(vtkDoubleArray* gradients, vtkDoubleArray* correct)
   return 1;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // we assume that the gradients are correct and so we can compute the "real"
 // vorticity from it
 int IsVorticityCorrect(vtkDoubleArray* gradients, vtkDoubleArray* vorticity)
@@ -128,7 +128,7 @@ int IsVorticityCorrect(vtkDoubleArray* gradients, vtkDoubleArray* vorticity)
   return 1;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // we assume that the gradients are correct and so we can compute the "real"
 // Q criterion from it
 int IsQCriterionCorrect(vtkDoubleArray* gradients, vtkDoubleArray* qCriterion)
@@ -163,7 +163,7 @@ int IsQCriterionCorrect(vtkDoubleArray* gradients, vtkDoubleArray* qCriterion)
   return 1;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // we assume that the gradients are correct and so we can compute the "real"
 // divergence from it
 int IsDivergenceCorrect(vtkDoubleArray* gradients, vtkDoubleArray* divergence)
@@ -190,7 +190,7 @@ int IsDivergenceCorrect(vtkDoubleArray* gradients, vtkDoubleArray* divergence)
   return 1;
 }
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int PerformTest(vtkDataSet* grid)
 {
   // Cleaning out the existing field data so that I can replace it with
@@ -210,6 +210,7 @@ int PerformTest(vtkDataSet* grid)
   const char resultName[] = "Result";
 
   vtkNew<vtkmGradient> pointGradients;
+  pointGradients->ForceVTKmOn();
   pointGradients->SetInputConnection(calculator->GetOutputPort());
   pointGradients->SetInputScalars(vtkDataObject::FIELD_ASSOCIATION_POINTS, fieldName);
   pointGradients->SetResultArrayName(resultName);
@@ -236,6 +237,7 @@ int PerformTest(vtkDataSet* grid)
   }
 
   vtkNew<vtkmGradient> pointVorticity;
+  pointVorticity->ForceVTKmOn();
   pointVorticity->SetInputConnection(calculator->GetOutputPort());
   pointVorticity->SetInputScalars(vtkDataObject::FIELD_ASSOCIATION_POINTS, fieldName);
   pointVorticity->SetResultArrayName(resultName);
@@ -270,7 +272,7 @@ int PerformTest(vtkDataSet* grid)
 }
 } // end local namespace
 
-//-----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int TestVTKMGradient(int /* argc */, char* /* argv */[])
 {
   vtkDataSet* grid = nullptr;

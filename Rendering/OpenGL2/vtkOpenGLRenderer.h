@@ -23,12 +23,14 @@
 #ifndef vtkOpenGLRenderer_h
 #define vtkOpenGLRenderer_h
 
+#include "vtkDeprecation.h" // for VTK_DEPRECATED_IN_9_0_0
 #include "vtkRenderer.h"
 #include "vtkRenderingOpenGL2Module.h" // For export macro
 #include "vtkSmartPointer.h"           // For vtkSmartPointer
 #include <string>                      // Ivars
 #include <vector>                      // STL Header
 
+class vtkFloatArray;
 class vtkOpenGLFXAAFilter;
 class vtkRenderPass;
 class vtkOpenGLState;
@@ -88,6 +90,8 @@ public:
    * The bug is fixed on macOS 10.11 and later, and this method
    * will return false when the OS is new enough.
    */
+  VTK_DEPRECATED_IN_9_1_0(
+    "Removed in 9.1.0 as this bug does not affect any macOS release that VTK supports")
   bool HaveApplePrimitiveIdBug();
 
   /**
@@ -148,6 +152,20 @@ public:
   vtkPBRLUTTexture* GetEnvMapLookupTable();
   vtkPBRIrradianceTexture* GetEnvMapIrradiance();
   vtkPBRPrefilterTexture* GetEnvMapPrefiltered();
+  //@}
+
+  /**
+   * Get spherical harmonics coefficients used for irradiance
+   */
+  vtkFloatArray* GetSphericalHarmonics();
+
+  //@{
+  /**
+   * Use spherical harmonics instead of irradiance texture
+   */
+  vtkSetMacro(UseSphericalHarmonics, bool);
+  vtkGetMacro(UseSphericalHarmonics, bool);
+  vtkBooleanMacro(UseSphericalHarmonics, bool);
   //@}
 
   /**
@@ -227,6 +245,8 @@ protected:
   vtkPBRLUTTexture* EnvMapLookupTable;
   vtkPBRIrradianceTexture* EnvMapIrradiance;
   vtkPBRPrefilterTexture* EnvMapPrefiltered;
+  vtkSmartPointer<vtkFloatArray> SphericalHarmonics;
+  bool UseSphericalHarmonics;
 
 private:
   vtkOpenGLRenderer(const vtkOpenGLRenderer&) = delete;

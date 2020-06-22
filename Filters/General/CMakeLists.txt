@@ -29,6 +29,7 @@ set(classes
   vtkDataSetGradientPrecompute
   vtkDataSetTriangleFilter
   vtkDateToNumeric
+  vtkDeflectNormals
   vtkDeformPointSet
   vtkDensifyPolyData
   vtkDicer
@@ -71,7 +72,6 @@ set(classes
   vtkOverlappingAMRLevelIdScalars
   vtkPassArrays
   vtkPassSelectedArrays
-  vtkPassThrough
   vtkPointConnectivityFilter
   vtkPolyDataStreamer
   vtkPolyDataToReebGraphFilter
@@ -91,6 +91,7 @@ set(classes
   vtkShrinkFilter
   vtkShrinkPolyData
   vtkSpatialRepresentationFilter
+  vtkSphericalHarmonics
   vtkSplineFilter
   vtkSplitByCellScalarFilter
   vtkSplitColumnComponents

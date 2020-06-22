@@ -16,6 +16,7 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include "vtkCommand.h"
 #include "vtkIdList.h"
+#include "vtkImageData.h"
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkOpenGLError.h"
@@ -30,6 +31,7 @@ PURPOSE.  See the above copyright notice for more information.
 
 #include <cmath>
 #include <sstream>
+#include <vector>
 
 #include "vtkOpenGLError.h"
 
@@ -41,6 +43,9 @@ PURPOSE.  See the above copyright notice for more information.
 #endif // WM_MOUSEWHEEL
 
 vtkStandardNewMacro(vtkWin32OpenGLRenderWindow);
+
+const std::string vtkWin32OpenGLRenderWindow::DEFAULT_BASE_WINDOW_NAME =
+  "Visualization Toolkit - Win32OpenGL #";
 
 vtkWin32OpenGLRenderWindow::vtkWin32OpenGLRenderWindow()
 {
@@ -56,6 +61,8 @@ vtkWin32OpenGLRenderWindow::vtkWin32OpenGLRenderWindow()
   this->CursorHidden = 0;
 
   this->WindowIdReferenceCount = 0;
+
+  this->SetWindowName(DEFAULT_BASE_WINDOW_NAME.c_str());
 }
 
 //------------------------------------------------------------------------------
@@ -154,6 +161,60 @@ void vtkWin32OpenGLRenderWindow::SetWindowName(const char* _arg)
 }
 
 //------------------------------------------------------------------------------
+void vtkWin32OpenGLRenderWindow::SetIcon(vtkImageData* img)
+{
+  int dim[3];
+  img->GetDimensions(dim);
+
+  int nbComp = img->GetNumberOfScalarComponents();
+
+  if (img->GetScalarType() != VTK_UNSIGNED_CHAR || dim[2] != 1 || nbComp < 3 || nbComp > 4)
+  {
+    vtkErrorMacro(
+      "Icon image should be 2D, have 3 or 4 components, and its type must be unsigned char.");
+    return;
+  }
+
+  unsigned char* imgScalars = static_cast<unsigned char*>(img->GetScalarPointer());
+
+  std::vector<unsigned char> pixels(nbComp * dim[0] * dim[1]);
+
+  // Convert vtkImageData buffer to HBITMAP.
+  // We need to flip Y and swap R and B channel
+  for (int col = 0; col < dim[1]; col++)
+  {
+    for (int line = 0; line < dim[0]; line++)
+    {
+      unsigned char* inPixel = imgScalars + nbComp * ((dim[0] - col - 1) * dim[1] + line); // flip Y
+      unsigned char* outPixel = pixels.data() + nbComp * (col * dim[1] + line);
+      outPixel[0] = inPixel[2]; // swap R and B channel
+      outPixel[1] = inPixel[1];
+      outPixel[2] = inPixel[0]; // swap R and B channel
+      outPixel[3] = inPixel[3];
+    }
+  }
+
+  HBITMAP bmp = CreateBitmap(dim[0], dim[1], 1, nbComp * 8, pixels.data());
+
+  HDC dc = GetDC(NULL);
+  HBITMAP bmpMask = CreateCompatibleBitmap(dc, dim[0], dim[1]);
+
+  ICONINFO ii;
+  ii.fIcon = TRUE;
+  ii.hbmMask = bmpMask;
+  ii.hbmColor = bmp;
+
+  HICON icon = CreateIconIndirect(&ii);
+
+  SendMessage(this->WindowId, WM_SETICON, ICON_BIG, (LPARAM)icon);
+
+  DeleteObject(bmpMask);
+  DeleteObject(bmp);
+  DestroyIcon(icon);
+  ReleaseDC(NULL, dc);
+}
+
+//------------------------------------------------------------------------------
 vtkTypeBool vtkWin32OpenGLRenderWindow::GetEventPending()
 {
   MSG msg;
@@ -173,7 +234,7 @@ vtkTypeBool vtkWin32OpenGLRenderWindow::GetEventPending()
   return 0;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkWin32OpenGLRenderWindow::InitializeFromCurrentContext()
 {
   HGLRC currentContext = wglGetCurrentContext();
@@ -187,7 +248,7 @@ bool vtkWin32OpenGLRenderWindow::InitializeFromCurrentContext()
   return false;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWin32OpenGLRenderWindow::MakeCurrent()
 {
   // Try to avoid doing anything (for performance).
@@ -248,7 +309,7 @@ void vtkWin32OpenGLRenderWindow::PopContext()
   }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Description:
 // Tells if this window is the current OpenGL context for the calling thread.
 bool vtkWin32OpenGLRenderWindow::IsCurrent()
@@ -278,7 +339,7 @@ bool vtkWin32OpenGLRenderWindow::SetSwapControl(int i)
   return true;
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 namespace
 {
 void AdjustWindowRectForBorders(
@@ -300,7 +361,7 @@ void AdjustWindowRectForBorders(
 }
 }
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWin32OpenGLRenderWindow::SetSize(int width, int height)
 {
   static bool resizing = false;
@@ -886,19 +947,15 @@ void vtkWin32OpenGLRenderWindow::CreateAWindow()
 
   if (this->WindowIdReferenceCount == 0)
   {
-    static int count = 1;
-    char* windowName;
-
     if (!this->WindowId)
     {
       this->DeviceContext = 0;
 
-      int len = static_cast<int>(strlen("Visualization Toolkit - Win32OpenGL #")) +
-        (int)ceil((double)log10((double)(count + 1))) + 1;
-      windowName = new char[len];
-      snprintf(windowName, len, "Visualization Toolkit - Win32OpenGL #%i", count++);
-      this->SetWindowName(windowName);
-      delete[] windowName;
+      if (this->GetWindowName() == DEFAULT_BASE_WINDOW_NAME)
+      {
+        static int count = 1;
+        this->SetWindowName((DEFAULT_BASE_WINDOW_NAME + std::to_string(count++)).c_str());
+      }
 
 #ifdef UNICODE
       wchar_t* wname = new wchar_t[mbstowcs(nullptr, this->WindowName, 32000) + 1];
@@ -1353,7 +1410,7 @@ void vtkWin32OpenGLRenderWindow::SetNextWindowId(void* arg)
   this->SetNextWindowId((HWND)arg);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWin32OpenGLRenderWindow::HideCursor()
 {
   if (this->CursorHidden)
@@ -1365,7 +1422,7 @@ void vtkWin32OpenGLRenderWindow::HideCursor()
   ::ShowCursor(!this->CursorHidden);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWin32OpenGLRenderWindow::ShowCursor()
 {
   if (!this->CursorHidden)
@@ -1377,7 +1434,7 @@ void vtkWin32OpenGLRenderWindow::ShowCursor()
   ::ShowCursor(!this->CursorHidden);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWin32OpenGLRenderWindow::SetCursorPosition(int x, int y)
 {
   const int* size = this->GetSize();
@@ -1392,7 +1449,7 @@ void vtkWin32OpenGLRenderWindow::SetCursorPosition(int x, int y)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkWin32OpenGLRenderWindow::SetCurrentCursor(int shape)
 {
   if (this->InvokeEvent(vtkCommand::CursorChangedEvent, &shape))
@@ -1443,7 +1500,7 @@ void vtkWin32OpenGLRenderWindow::SetCurrentCursor(int shape)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 bool vtkWin32OpenGLRenderWindow::DetectDPI()
 {
   this->SetDPI(GetDeviceCaps(this->DeviceContext, LOGPIXELSY));

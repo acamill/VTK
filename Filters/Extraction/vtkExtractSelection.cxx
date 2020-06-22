@@ -48,16 +48,16 @@
 #include <vector>
 
 vtkStandardNewMacro(vtkExtractSelection);
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkExtractSelection::vtkExtractSelection()
 {
   this->SetNumberOfInputPorts(2);
 }
 
-//----------------------------------------------------------------------------
-vtkExtractSelection::~vtkExtractSelection() {}
+//------------------------------------------------------------------------------
+vtkExtractSelection::~vtkExtractSelection() = default;
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkExtractSelection::FillInputPortInformation(int port, vtkInformation* info)
 {
   if (port == 0)
@@ -72,7 +72,7 @@ int vtkExtractSelection::FillInputPortInformation(int port, vtkInformation* info
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkExtractSelection::RequestDataObject(
   vtkInformation*, vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -100,9 +100,20 @@ int vtkExtractSelection::RequestDataObject(
     return 1;
   }
 
+  if (vtkDataObjectTree::SafeDownCast(inputDO))
+  {
+    // For DataObjectTree, preserve the type.
+    if (outputDO == nullptr || outputDO->GetDataObjectType() != inputDO->GetDataObjectType())
+    {
+      outputDO = inputDO->NewInstance();
+      outInfo->Set(vtkDataObject::DATA_OBJECT(), outputDO);
+      outputDO->Delete();
+    }
+    return 1;
+  }
   if (vtkCompositeDataSet::SafeDownCast(inputDO))
   {
-    // For any composite dataset, we're create a vtkMultiBlockDataSet as output;
+    // For other composite datasets, we're create a vtkMultiBlockDataSet as output;
     if (vtkMultiBlockDataSet::SafeDownCast(outputDO) == nullptr)
     {
       outputDO = vtkMultiBlockDataSet::New();
@@ -148,7 +159,7 @@ int vtkExtractSelection::RequestDataObject(
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkDataObject::AttributeTypes vtkExtractSelection::GetAttributeTypeOfSelection(
   vtkSelection* sel, bool& sane)
 {
@@ -197,7 +208,7 @@ void InvertSelection(vtkSignedCharArray* array)
 }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkExtractSelection::RequestData(vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector, vtkInformationVector* outputVector)
 {
@@ -229,7 +240,7 @@ int vtkExtractSelection::RequestData(vtkInformation* vtkNotUsed(request),
   }
 
   // Create operators for each of vtkSelectionNode instances and initialize them.
-  std::map<std::string, vtkSmartPointer<vtkSelector> > selectors;
+  std::map<std::string, vtkSmartPointer<vtkSelector>> selectors;
   for (unsigned int cc = 0, max = selection->GetNumberOfNodes(); cc < max; ++cc)
   {
     auto node = selection->GetNode(cc);
@@ -238,7 +249,7 @@ int vtkExtractSelection::RequestData(vtkInformation* vtkNotUsed(request),
     if (auto anOperator = this->NewSelectionOperator(
           static_cast<vtkSelectionNode::SelectionContent>(node->GetContentType())))
     {
-      anOperator->SetInsidednessArrayName(name.c_str());
+      anOperator->SetInsidednessArrayName(name);
       anOperator->Initialize(node);
       selectors[name] = anOperator;
     }
@@ -262,7 +273,7 @@ int vtkExtractSelection::RequestData(vtkInformation* vtkNotUsed(request),
     {
       auto name = nodeIter->first;
       auto insidednessArray = vtkSignedCharArray::SafeDownCast(fieldData->GetArray(name.c_str()));
-      auto node = selection->GetNode(name.c_str());
+      auto node = selection->GetNode(name);
       if (insidednessArray != nullptr && node->GetProperties()->Has(vtkSelectionNode::INVERSE()) &&
         node->GetProperties()->Get(vtkSelectionNode::INVERSE()))
       {
@@ -372,7 +383,7 @@ int vtkExtractSelection::RequestData(vtkInformation* vtkNotUsed(request),
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSmartPointer<vtkSelector> vtkExtractSelection::NewSelectionOperator(
   vtkSelectionNode::SelectionContent contentType)
 {
@@ -402,7 +413,7 @@ vtkSmartPointer<vtkSelector> vtkExtractSelection::NewSelectionOperator(
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkSmartPointer<vtkDataObject> vtkExtractSelection::ExtractElements(
   vtkDataObject* block, vtkDataObject::AttributeTypes type, vtkSignedCharArray* insidednessArray)
 {
@@ -452,7 +463,7 @@ vtkSmartPointer<vtkDataObject> vtkExtractSelection::ExtractElements(
   return vtkSmartPointer<vtkDataObject>::Take(output);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkExtractSelection::ExtractSelectedCells(
   vtkDataSet* input, vtkUnstructuredGrid* output, vtkSignedCharArray* cellInside)
 {
@@ -519,7 +530,7 @@ void vtkExtractSelection::ExtractSelectedCells(
   output->ShallowCopy(extractor->GetOutput());
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkExtractSelection::ExtractSelectedPoints(
   vtkDataSet* input, vtkUnstructuredGrid* output, vtkSignedCharArray* pointInside)
 {
@@ -592,7 +603,7 @@ void vtkExtractSelection::ExtractSelectedPoints(
   output->SetPoints(newPts);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkExtractSelection::ExtractSelectedRows(
   vtkTable* input, vtkTable* output, vtkSignedCharArray* rowsInside)
 {
@@ -616,7 +627,7 @@ void vtkExtractSelection::ExtractSelectedRows(
   output->AddColumn(originalRowIds);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkExtractSelection::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

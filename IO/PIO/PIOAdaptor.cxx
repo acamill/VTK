@@ -1,15 +1,17 @@
 #include "PIOAdaptor.h"
 #include "BHTree.h"
 
+#include "vtkCellArray.h"
+#include "vtkCellData.h"
 #include "vtkCellType.h"
 #include "vtkDirectory.h"
 #include "vtkDoubleArray.h"
-#include "vtkFieldData.h"
 #include "vtkFloatArray.h"
 #include "vtkIdList.h"
+#include "vtkInformation.h"
 #include "vtkIntArray.h"
+#include "vtkMultiPieceDataSet.h"
 #include "vtkNew.h"
-#include "vtkPointData.h"
 #include "vtkPoints.h"
 #include "vtkStdString.h"
 #include "vtkStringArray.h"
@@ -50,7 +52,7 @@ double maxLoc[3];
 // Global geometry information from dump file
 std::valarray<int64_t> daughter;
 
-// Used in load balancing of unstructure grid
+// Used in load balancing of unstructured grid
 int firstCell;
 int lastCell;
 
@@ -80,7 +82,8 @@ PIOAdaptor::~PIOAdaptor()
 {
   if (this->pioData != 0)
     delete this->pioData;
-  delete[] this->timeSteps;
+  delete[] this->CycleIndex;
+  delete[] this->SimulationTime;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -106,16 +109,20 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
     return 0;
   }
 
-  // Get the directory name from the full path of the .pio file
+  // Get the directory name from the full path of the .pio file in GUI
+  // or simple name from python script
   string::size_type dirPos = this->descFileName.find_last_of(Slash);
   string dirName;
   if (dirPos == string::npos)
   {
-    vtkGenericWarningMacro("Bad input file name: " << PIOFileName);
-    return 0;
+    // No directory name included
+    ostringstream tempStr;
+    tempStr << "." << Slash;
+    dirName = tempStr.str();
   }
   else
   {
+    // Directory name before final slash
     dirName = this->descFileName.substr(0, dirPos);
   }
 
@@ -221,7 +228,6 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
   if (dir->Open(this->dumpDirectory.c_str()) != false)
   {
     numFiles = dir->GetNumberOfFiles();
-    this->timeSteps = new double[numFiles];
     this->numberOfTimeSteps = 0;
     for (unsigned int i = 0; i < numFiles; i++)
     {
@@ -241,7 +247,7 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
       std::size_t pos2 = fileCandidate[i].size();
       std::string timeStr = fileCandidate[i].substr(pos1, pos2);
       double time = 0.0;
-      if (timeStr.size() > 0)
+      if (!timeStr.empty())
       {
         char* p;
         std::strtol(timeStr.c_str(), &p, 10);
@@ -250,7 +256,7 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
         if (*p == 0)
         {
           time = std::stod(timeStr);
-          this->timeSteps[this->numberOfTimeSteps++] = time;
+          this->numberOfTimeSteps++;
           ostringstream tempStr;
           tempStr << dumpDirectory << Slash << fileCandidate[i];
           this->dumpFileName.push_back(tempStr.str());
@@ -263,7 +269,7 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
     vtkGenericWarningMacro("Dump directory does not exist: " << this->dumpDirectory);
     return 0;
   }
-  if (this->dumpFileName.size() == 0)
+  if (this->dumpFileName.empty())
   {
     vtkGenericWarningMacro("No files exist with the base name :" << this->dumpBaseName);
     return 0;
@@ -272,10 +278,25 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
   /////////////////////////////////////////////////////////////////////////////
   //
   // Collect variables having a value for every cell from dump file
+  // Collect simulation time and cycle for every dump file from the last PIO file
+  // Last PIO file has collected history information from entire run
   //
-  this->pioData = new PIO_DATA(this->dumpFileName[0].c_str());
+  this->pioData = new PIO_DATA(this->dumpFileName[numberOfTimeSteps - 1].c_str());
   if (this->pioData->good_read())
   {
+    // Collect all of the simulation times and cycles for entire run
+    std::valarray<double> histCycle;
+    std::valarray<double> histTime;
+    this->pioData->set_scalar_field(histCycle, "hist_cycle");
+    this->pioData->set_scalar_field(histTime, "hist_time");
+    this->CycleIndex = new double[numberOfTimeSteps];
+    this->SimulationTime = new double[numberOfTimeSteps];
+    for (int step = 0; step < numberOfTimeSteps; step++)
+    {
+      this->CycleIndex[step] = histCycle[step];
+      this->SimulationTime[step] = histTime[step];
+    }
+
     // Get the number of cells in dump file for this time step
     std::valarray<int> histsize;
     this->pioData->set_scalar_field(histsize, "hist_size");
@@ -285,6 +306,22 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
 
     for (int i = 0; i < numberOfFields; i++)
     {
+      // Are tracers available in file
+      char* pioName = pioField[i].pio_name;
+      if (strcmp(pioName, "tracer_num_pnts") == 0)
+      {
+        this->hasTracers = true;
+      }
+
+      // Default variable names that are initially enabled for loading if pres
+      if ((strcmp(pioName, "tev") == 0) || (strcmp(pioName, "pres") == 0) ||
+        (strcmp(pioName, "rho") == 0) || (strcmp(pioName, "rade") == 0) ||
+        (strcmp(pioName, "cell_energy") == 0) || (strcmp(pioName, "kemax") == 0) ||
+        (strcmp(pioName, "vel") == 0) || (strcmp(pioName, "eng") == 0))
+      {
+        this->variableDefault.emplace_back(pioName);
+      }
+
       if (pioField[i].length == numberOfCells && pioField[i].cdata_len == 0)
       {
         // index = 0 is scalar, index = 1 is vector, index = -1 is request from input deck
@@ -293,65 +330,48 @@ int PIOAdaptor::initializeGlobal(const char* PIOFileName)
         {
           // Discard names used in geometry and variables with too many components
           // which are present for use in tracers
-          char* pioName = pioField[i].pio_name;
           size_t numberOfComponents = this->pioData->VarMMap.count(pioName);
-
-          // Are tracers available in file
-          if (strcmp(pioName, "tracer_num_pnts") == 0)
-          {
-            this->hasTracers = true;
-          }
 
           if ((numberOfComponents <= 9) && (strcmp(pioName, "cell_has_tracers") != 0) &&
             (strcmp(pioName, "cell_level") != 0) && (strcmp(pioName, "cell_mother") != 0) &&
             (strcmp(pioName, "cell_daughter") != 0) && (strcmp(pioName, "cell_center") != 0) &&
             (strcmp(pioName, "cell_active") != 0) && (strcmp(pioName, "amr_tag") != 0))
           {
-            this->variableName.push_back(pioName);
+            this->variableName.emplace_back(pioName);
           }
         }
       }
     }
     sort(this->variableName.begin(), this->variableName.end());
-
-    // Default variable names that are initially enabled for loading
-    this->variableDefault.push_back("tev");
-    this->variableDefault.push_back("prs");
-    this->variableDefault.push_back("rho");
-    this->variableDefault.push_back("rade");
-    this->variableDefault.push_back("cell_energy");
-    this->variableDefault.push_back("kemax");
-    this->variableDefault.push_back("vel");
-    this->variableDefault.push_back("eng");
   }
 
   /////////////////////////////////////////////////////////////////////////////
   //
   // List of all data fields to read from dump files
   //
-  this->fieldsToRead.push_back("amhc_i");
-  this->fieldsToRead.push_back("amhc_r8");
-  this->fieldsToRead.push_back("amhc_l");
-  this->fieldsToRead.push_back("cell_center");
-  this->fieldsToRead.push_back("cell_daughter");
-  this->fieldsToRead.push_back("cell_level");
-  this->fieldsToRead.push_back("global_numcell");
-  this->fieldsToRead.push_back("hist_cycle");
-  this->fieldsToRead.push_back("hist_time");
-  this->fieldsToRead.push_back("hist_size");
-  this->fieldsToRead.push_back("l_eap_version");
-  this->fieldsToRead.push_back("hist_usernm");
-  this->fieldsToRead.push_back("hist_prbnm");
+  this->fieldsToRead.emplace_back("amhc_i");
+  this->fieldsToRead.emplace_back("amhc_r8");
+  this->fieldsToRead.emplace_back("amhc_l");
+  this->fieldsToRead.emplace_back("cell_center");
+  this->fieldsToRead.emplace_back("cell_daughter");
+  this->fieldsToRead.emplace_back("cell_level");
+  this->fieldsToRead.emplace_back("global_numcell");
+  this->fieldsToRead.emplace_back("hist_cycle");
+  this->fieldsToRead.emplace_back("hist_time");
+  this->fieldsToRead.emplace_back("hist_size");
+  this->fieldsToRead.emplace_back("l_eap_version");
+  this->fieldsToRead.emplace_back("hist_usernm");
+  this->fieldsToRead.emplace_back("hist_prbnm");
 
   // If tracers are contained in the file
   if (this->hasTracers == true)
   {
-    this->fieldsToRead.push_back("tracer_num_pnts");
-    this->fieldsToRead.push_back("tracer_num_vars");
-    this->fieldsToRead.push_back("tracer_record_count");
-    this->fieldsToRead.push_back("tracer_type");
-    this->fieldsToRead.push_back("tracer_position");
-    this->fieldsToRead.push_back("tracer_data");
+    this->fieldsToRead.emplace_back("tracer_num_pnts");
+    this->fieldsToRead.emplace_back("tracer_num_vars");
+    this->fieldsToRead.emplace_back("tracer_record_count");
+    this->fieldsToRead.emplace_back("tracer_type");
+    this->fieldsToRead.emplace_back("tracer_position");
+    this->fieldsToRead.emplace_back("tracer_data");
   }
 
   // Requested variable fields from pio meta file
@@ -450,26 +470,44 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   grid->SetNumberOfBlocks(1);
   if (this->useHTG == false)
   {
-    // Create an unstructured grid to hold the dump file data
+    // Create a multipiece dataset and an unstructured grid to hold the dump file data
+    vtkNew<vtkMultiPieceDataSet> multipiece;
+    multipiece->SetNumberOfPieces(this->TotalRank);
+
     vtkNew<vtkUnstructuredGrid> ugrid;
     ugrid->Initialize();
-    grid->SetBlock(0, ugrid);
+
+    multipiece->SetPiece(this->Rank, ugrid);
+    grid->SetBlock(0, multipiece);
+    grid->GetMetaData((unsigned int)0)->Set(vtkCompositeDataSet::NAME(), "AMR Grid");
   }
   else
   {
-    // Create a hypertree grid to hold the dump file data
+    // Create a multipiece dataset and hypertree grid to hold the dump file data
+    vtkNew<vtkMultiPieceDataSet> multipiece;
+    multipiece->SetNumberOfPieces(this->TotalRank);
+
     vtkNew<vtkHyperTreeGrid> htgrid;
     htgrid->Initialize();
-    grid->SetBlock(0, htgrid);
+
+    multipiece->SetPiece(this->Rank, htgrid);
+    grid->SetBlock(0, multipiece);
+    grid->GetMetaData((unsigned int)0)->Set(vtkCompositeDataSet::NAME(), "AMR Grid");
   }
 
   // If tracers are used add a second block of unstructured grid particles
   if (this->hasTracers == true && this->useTracer == true)
   {
-    grid->SetNumberOfBlocks(2);
+    vtkNew<vtkMultiPieceDataSet> multipiece;
+    multipiece->SetNumberOfPieces(this->TotalRank);
+
     vtkNew<vtkUnstructuredGrid> tgrid;
     tgrid->Initialize();
-    grid->SetBlock(1, tgrid);
+
+    multipiece->SetPiece(this->Rank, tgrid);
+    grid->SetNumberOfBlocks(2);
+    grid->SetBlock(1, multipiece);
+    grid->GetMetaData((unsigned int)1)->Set(vtkCompositeDataSet::NAME(), "Tracers");
   }
 
   // Collect geometry information from PIOData files
@@ -478,7 +516,7 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   std::valarray<int> numcell;
   std::valarray<double> simCycle;
   std::valarray<double> simTime;
-  std::valarray<std::valarray<double> > center;
+  std::valarray<std::valarray<double>> center;
 
   this->pioData->set_scalar_field(histsize, "hist_size");
   this->pioData->set_scalar_field(daughter, "cell_daughter");
@@ -515,7 +553,10 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   {
     if (this->hasTracers == true)
     {
-      create_tracer_UG(grid);
+      if (this->Rank == 0)
+      {
+        create_tracer_UG(grid);
+      }
     }
     else
     {
@@ -538,22 +579,6 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   this->pioData->GetPIOData("hist_prbnm", cdata);
   vtkStdString problem_name(cdata);
 
-  // Add FieldData array for cycle number
-  vtkNew<vtkIntArray> cycleArray;
-  cycleArray->SetName("cycle_index");
-  cycleArray->SetNumberOfComponents(1);
-  cycleArray->SetNumberOfTuples(1);
-  cycleArray->SetTuple1(0, (int)simCycle[curIndex]);
-  grid->GetFieldData()->AddArray(cycleArray);
-
-  // Add FieldData array for simulation time
-  vtkNew<vtkFloatArray> simTimeArray;
-  simTimeArray->SetName("simulated_time");
-  simTimeArray->SetNumberOfComponents(1);
-  simTimeArray->SetNumberOfTuples(1);
-  simTimeArray->SetTuple1(0, simTime[curIndex]);
-  grid->GetFieldData()->AddArray(simTimeArray);
-
   // Add FieldData array for version number
   vtkNew<vtkStringArray> versionArray;
   versionArray->SetName("eap_version");
@@ -571,6 +596,22 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
   probNameArray->SetName("problem_name");
   probNameArray->InsertNextValue(problem_name);
   grid->GetFieldData()->AddArray(probNameArray);
+
+  // Add FieldData array for cycle number
+  vtkNew<vtkDoubleArray> cycleArray;
+  cycleArray->SetName("CycleIndex");
+  cycleArray->SetNumberOfComponents(1);
+  cycleArray->SetNumberOfTuples(1);
+  cycleArray->SetTuple1(0, simCycle[curIndex]);
+  grid->GetFieldData()->AddArray(cycleArray);
+
+  // Add FieldData array for simulation time
+  vtkNew<vtkDoubleArray> simTimeArray;
+  simTimeArray->SetName("SimulationTime");
+  simTimeArray->SetNumberOfComponents(1);
+  simTimeArray->SetNumberOfTuples(1);
+  simTimeArray->SetTuple1(0, simTime[curIndex]);
+  grid->GetFieldData()->AddArray(simTimeArray);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -581,15 +622,16 @@ void PIOAdaptor::create_geometry(vtkMultiBlockDataSet* grid)
 
 void PIOAdaptor::create_tracer_UG(vtkMultiBlockDataSet* grid)
 {
-  vtkUnstructuredGrid* tgrid = vtkUnstructuredGrid::SafeDownCast(grid->GetBlock(1));
+  vtkMultiPieceDataSet* multipiece = vtkMultiPieceDataSet::SafeDownCast(grid->GetBlock(1));
+  vtkUnstructuredGrid* tgrid = vtkUnstructuredGrid::SafeDownCast(multipiece->GetPiece(this->Rank));
   tgrid->Initialize();
 
   // Get tracer information from PIOData
   std::valarray<int> tracer_num_pnts;
   std::valarray<int> tracer_num_vars;
   std::valarray<int> tracer_record_count;
-  std::valarray<std::valarray<double> > tracer_position;
-  std::valarray<std::valarray<double> > tracer_data;
+  std::valarray<std::valarray<double>> tracer_position;
+  std::valarray<std::valarray<double>> tracer_data;
 
   this->pioData->set_scalar_field(tracer_num_pnts, "tracer_num_pnts");
   this->pioData->set_scalar_field(tracer_num_vars, "tracer_num_vars");
@@ -646,7 +688,7 @@ void PIOAdaptor::create_tracer_UG(vtkMultiBlockDataSet* grid)
       arr->SetNumberOfComponents(1);
       arr->SetNumberOfTuples(numberOfTracers);
       varData[var] = arr->GetPointer(0);
-      tgrid->GetPointData()->AddArray(arr);
+      tgrid->GetCellData()->AddArray(arr);
     }
     int index = 0;
     for (int i = 0; i < numberOfTracers; i++)
@@ -668,7 +710,7 @@ void PIOAdaptor::create_tracer_UG(vtkMultiBlockDataSet* grid)
       arr->SetNumberOfComponents(1);
       arr->SetNumberOfTuples(numberOfTracers);
       varData[var] = arr->GetPointer(0);
-      tgrid->GetPointData()->AddArray(arr);
+      tgrid->GetCellData()->AddArray(arr);
     }
     int index = 0;
     for (int i = 0; i < numberOfTracers; i++)
@@ -696,13 +738,31 @@ void PIOAdaptor::create_amr_UG(vtkMultiBlockDataSet* grid,
   int64_t* cell_daughter, // Daughter ID, 0 indicates no daughter
   double** cell_center)   // Cell center
 {
-  // Count the number of cells for load balancing between xrage procs and paraview procs
+  // Distribute xrage data over paraview processors if possible
+  // Can't just distribute cells because xrage processor is on daughter boundary
   std::vector<int> countPerRank(this->TotalRank);
-  for (int rank = 0; rank < this->TotalRank; rank++)
+
+  // More PIO processors than paraview processors
+  if (numberOfGlobal > this->TotalRank)
   {
-    countPerRank[rank] = numberOfGlobal / this->TotalRank;
+    for (int rank = 0; rank < this->TotalRank; rank++)
+    {
+      countPerRank[rank] = numberOfGlobal / this->TotalRank;
+    }
+    countPerRank[0] += (numberOfGlobal % this->TotalRank);
   }
-  countPerRank[this->TotalRank - 1] += (numberOfGlobal % this->TotalRank);
+  else
+  // Fewer PIO processors than paraview processors so one or none per
+  {
+    for (int rank = 0; rank < numberOfGlobal; rank++)
+    {
+      countPerRank[rank] = 1;
+    }
+    for (int rank = numberOfGlobal; rank < this->TotalRank; rank++)
+    {
+      countPerRank[rank] = 0;
+    }
+  }
 
   std::vector<int> startCell(this->TotalRank);
   std::vector<int> endCell(this->TotalRank);
@@ -755,7 +815,8 @@ void PIOAdaptor::create_amr_UG_1D(vtkMultiBlockDataSet* grid, int startCellIndx,
   int64_t* cell_daughter, // Daughter ID, 0 indicates no daughter
   double* cell_center[1]) // Cell center
 {
-  vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(grid->GetBlock(0));
+  vtkMultiPieceDataSet* multipiece = vtkMultiPieceDataSet::SafeDownCast(grid->GetBlock(0));
+  vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(multipiece->GetPiece(this->Rank));
   ugrid->Initialize();
 
   // Get count of cells which will be created for allocation
@@ -792,7 +853,6 @@ void PIOAdaptor::create_amr_UG_1D(vtkMultiBlockDataSet* grid, int startCellIndx,
       ugrid->InsertNextCell(VTK_LINE, numberOfDaughters, cell);
     }
   }
-
   delete[] cell;
 }
 
@@ -809,7 +869,8 @@ void PIOAdaptor::create_amr_UG_2D(vtkMultiBlockDataSet* grid, int startCellIndx,
   int64_t* cell_daughter, // Daughter ID, 0 indicates no daughter
   double* cell_center[2]) // Cell center
 {
-  vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(grid->GetBlock(0));
+  vtkMultiPieceDataSet* multipiece = vtkMultiPieceDataSet::SafeDownCast(grid->GetBlock(0));
+  vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(multipiece->GetPiece(this->Rank));
   ugrid->Initialize();
 
   // Get count of cells which will be created for allocation
@@ -886,7 +947,8 @@ void PIOAdaptor::create_amr_UG_3D(vtkMultiBlockDataSet* grid, int startCellIndx,
   int64_t* cell_daughter, // Daughter ID, 0 indicates no daughter
   double* cell_center[3]) // Cell center
 {
-  vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(grid->GetBlock(0));
+  vtkMultiPieceDataSet* multipiece = vtkMultiPieceDataSet::SafeDownCast(grid->GetBlock(0));
+  vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(multipiece->GetPiece(this->Rank));
   ugrid->Initialize();
 
   // Get count of cells which will be created for allocation
@@ -1055,7 +1117,10 @@ void PIOAdaptor::create_amr_HTG(vtkMultiBlockDataSet* grid,
   int64_t* cell_daughter, // Daughter
   double* cell_center[3]) // Cell center
 {
-  vtkHyperTreeGrid* htgrid = vtkHyperTreeGrid::SafeDownCast(grid->GetBlock(0));
+  vtkMultiPieceDataSet* multipiece = vtkMultiPieceDataSet::SafeDownCast(grid->GetBlock(0));
+  vtkHyperTreeGrid* htgrid =
+    vtkHyperTreeGrid::SafeDownCast(multipiece->GetPieceAsDataObject(this->Rank));
+
   htgrid->Initialize();
   htgrid->SetDimensions(gridSize[0] + 1, gridSize[1] + 1, gridSize[2] + 1);
   htgrid->SetBranchFactor(2);
@@ -1090,7 +1155,7 @@ void PIOAdaptor::create_amr_HTG(vtkMultiBlockDataSet* grid,
   // Locate the level 1 cells which are the top level AMR for a grid position
   // Count the number of nodes and leaves in each level 1 cell for load balance
   int64_t* level1_index = new int64_t[numberOfTrees];
-  std::vector<std::pair<int, int> > treeCount;
+  std::vector<std::pair<int, int>> treeCount;
   std::vector<int> _myHyperTree;
 
   int planeSize = gridSize[1] * gridSize[0];
@@ -1111,7 +1176,7 @@ void PIOAdaptor::create_amr_HTG(vtkMultiBlockDataSet* grid,
       // Collect the count per tree for load balancing
       int whichTree = (gridIndx[2] * planeSize) + (gridIndx[1] * rowSize) + gridIndx[0];
       int gridCount = count_hypertree(i, cell_daughter);
-      treeCount.push_back(std::make_pair(gridCount, whichTree));
+      treeCount.emplace_back(gridCount, whichTree);
 
       // Save the xrage cell which corresponds to a level 1 cell
       level1_index[whichTree] = i;
@@ -1169,19 +1234,19 @@ void PIOAdaptor::create_amr_HTG(vtkMultiBlockDataSet* grid,
 ///////////////////////////////////////////////////////////////////////////////
 
 void PIOAdaptor::load_variable_data(
-  vtkMultiBlockDataSet* grid, vtkDataArraySelection* PointDataArraySelection)
+  vtkMultiBlockDataSet* grid, vtkDataArraySelection* cellDataArraySelection)
 {
   for (unsigned int var = 0; var < this->variableName.size(); var++)
   {
     int64_t* cell_daughter = &daughter[0];
-    if (PointDataArraySelection->ArrayIsEnabled(this->variableName[var].c_str()))
+    if (cellDataArraySelection->ArrayIsEnabled(this->variableName[var].c_str()))
     {
       // Using PIOData fetch the variable data from the file
       int numberOfComponents =
         static_cast<int>(this->pioData->VarMMap.count(this->variableName[var].c_str()));
       double** dataVector = new double*[numberOfComponents];
       std::valarray<double> scalarArray;
-      std::valarray<std::valarray<double> > vectorArray;
+      std::valarray<std::valarray<double>> vectorArray;
 
       if (numberOfComponents == 1)
       {
@@ -1224,7 +1289,10 @@ void PIOAdaptor::add_amr_HTG_scalar(vtkMultiBlockDataSet* grid, vtkStdString var
   double* data[],         // Data for all cells
   int numberOfComponents) // Number of components
 {
-  vtkHyperTreeGrid* htgrid = vtkHyperTreeGrid::SafeDownCast(grid->GetBlock(0));
+  vtkMultiPieceDataSet* multipiece = vtkMultiPieceDataSet::SafeDownCast(grid->GetBlock(0));
+  vtkHyperTreeGrid* htgrid =
+    vtkHyperTreeGrid::SafeDownCast(multipiece->GetPieceAsDataObject(this->Rank));
+
   int numberOfNodesLeaves = static_cast<int>(this->indexNodeLeaf.size());
 
   // Data array in same order as the geometry cells
@@ -1234,7 +1302,7 @@ void PIOAdaptor::add_amr_HTG_scalar(vtkMultiBlockDataSet* grid, vtkStdString var
     arr->SetName(varName);
     arr->SetNumberOfComponents(numberOfComponents);
     arr->SetNumberOfTuples(numberOfNodesLeaves);
-    htgrid->GetPointData()->AddArray(arr);
+    htgrid->GetCellData()->AddArray(arr);
     double* varData = arr->GetPointer(0);
 
     // Copy the data in the order needed for recursive create of HTG
@@ -1253,7 +1321,7 @@ void PIOAdaptor::add_amr_HTG_scalar(vtkMultiBlockDataSet* grid, vtkStdString var
     arr->SetName(varName);
     arr->SetNumberOfComponents(numberOfComponents);
     arr->SetNumberOfTuples(numberOfNodesLeaves);
-    htgrid->GetPointData()->AddArray(arr);
+    htgrid->GetCellData()->AddArray(arr);
     float* varData = arr->GetPointer(0);
 
     // Copy the data in the order needed for recursive create of HTG
@@ -1281,7 +1349,8 @@ void PIOAdaptor::add_amr_UG_scalar(vtkMultiBlockDataSet* grid, vtkStdString varN
   double* data[],         // Data for all cells
   int numberOfComponents) // Number of components
 {
-  vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(grid->GetBlock(0));
+  vtkMultiPieceDataSet* multipiece = vtkMultiPieceDataSet::SafeDownCast(grid->GetBlock(0));
+  vtkUnstructuredGrid* ugrid = vtkUnstructuredGrid::SafeDownCast(multipiece->GetPiece(this->Rank));
 
   int numberOfActiveCells = ugrid->GetNumberOfCells();
 
@@ -1292,7 +1361,7 @@ void PIOAdaptor::add_amr_UG_scalar(vtkMultiBlockDataSet* grid, vtkStdString varN
     arr->SetName(varName);
     arr->SetNumberOfComponents(numberOfComponents);
     arr->SetNumberOfTuples(numberOfActiveCells);
-    ugrid->GetPointData()->AddArray(arr);
+    ugrid->GetCellData()->AddArray(arr);
     double* varData = arr->GetPointer(0);
 
     // Set the data in the matching cells skipping lower level cells
@@ -1314,7 +1383,7 @@ void PIOAdaptor::add_amr_UG_scalar(vtkMultiBlockDataSet* grid, vtkStdString varN
     arr->SetName(varName);
     arr->SetNumberOfComponents(numberOfComponents);
     arr->SetNumberOfTuples(numberOfActiveCells);
-    ugrid->GetPointData()->AddArray(arr);
+    ugrid->GetCellData()->AddArray(arr);
     float* varData = arr->GetPointer(0);
 
     // Set the data in the matching cells skipping lower level cells

@@ -107,6 +107,7 @@
 #include <QScopedPointer> // for QScopedPointer.
 
 #include "QVTKInteractor.h"        // needed for QVTKInteractor
+#include "vtkDeprecation.h"        // For VTK_DEPRECATED_IN_9_0_0
 #include "vtkGUISupportQtModule.h" // for export macro
 #include "vtkNew.h"                // needed for vtkNew
 #include "vtkSmartPointer.h"       // needed for vtkSmartPointer
@@ -185,8 +186,10 @@ public:
   /**
    * @deprecated in VTK 9.0
    */
-  VTK_LEGACY(void SetRenderWindow(vtkGenericOpenGLRenderWindow* win));
-  VTK_LEGACY(void SetRenderWindow(vtkRenderWindow* win));
+  VTK_DEPRECATED_IN_9_0_0("Use QVTKOpenGLNativeWidget::setRenderWindow")
+  void SetRenderWindow(vtkGenericOpenGLRenderWindow* win);
+  VTK_DEPRECATED_IN_9_0_0("Use QVTKOpenGLNativeWidget::setRenderWindow")
+  void SetRenderWindow(vtkRenderWindow* win);
   //@}
 
   //@{
@@ -195,28 +198,33 @@ public:
    * QVTKOpenGLNativeWidget is QObject subclass, we follow Qt naming conventions
    * rather than VTK's.
    */
-  VTK_LEGACY(vtkRenderWindow* GetRenderWindow());
-  VTK_LEGACY(QVTKInteractor* GetInteractor());
+  VTK_DEPRECATED_IN_9_0_0("Use QVTKOpenGLNativeWidget::renderWindow")
+  vtkRenderWindow* GetRenderWindow();
+  VTK_DEPRECATED_IN_9_0_0("Removed in 9.0.0 (internal)")
+  QVTKInteractor* GetInteractor();
   //@}
 
   /**
    * @deprecated in VTK 9.0
    * QVTKInteractorAdapter is an internal helper. Hence the API was removed.
    */
-  VTK_LEGACY(QVTKInteractorAdapter* GetInteractorAdapter());
+  VTK_DEPRECATED_IN_9_0_0("Removed in 9.0.0 (internal)")
+  QVTKInteractorAdapter* GetInteractorAdapter();
 
   /**
    * @deprecated in VTK 9.0. Simply use `QWidget::setCursor` API to change
    * cursor.
    */
-  VTK_LEGACY(void setQVTKCursor(const QCursor& cursor));
+  VTK_DEPRECATED_IN_9_0_0("Use QWidget::setCursor")
+  void setQVTKCursor(const QCursor& cursor);
 
   /**
    * @deprecated in VTK 9.0. Use `setDefaultCursor` instead.
    */
-  VTK_LEGACY(void setDefaultQVTKCursor(const QCursor& cursor));
+  VTK_DEPRECATED_IN_9_0_0("Use QWidget::setDefaultCursor")
+  void setDefaultQVTKCursor(const QCursor& cursor);
 
-protected slots:
+protected Q_SLOTS:
   /**
    * Called as a response to `QOpenGLContext::aboutToBeDestroyed`. This may be
    * called anytime during the widget lifecycle. We need to release any OpenGL

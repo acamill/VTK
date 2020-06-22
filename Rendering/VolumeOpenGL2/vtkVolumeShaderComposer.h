@@ -18,7 +18,9 @@
 #include <vtkCamera.h>
 #include <vtkImplicitFunction.h>
 #include <vtkOpenGLGPUVolumeRayCastMapper.h>
+#include <vtkRectilinearGrid.h>
 #include <vtkRenderer.h>
+#include <vtkUniformGrid.h>
 #include <vtkVolume.h>
 #include <vtkVolumeInputHelper.h>
 #include <vtkVolumeMapper.h>
@@ -159,6 +161,21 @@ std::string BaseDeclarationFragment(vtkRenderer* vtkNotUsed(ren), vtkVolumeMappe
               << "];\n"
                  "uniform vec4 in_volume_bias["
               << numInputs << "];\n";
+
+  if (vtkRectilinearGrid::SafeDownCast(mapper->GetInput()))
+  {
+    toShaderStr << "uniform sampler1D in_coordTexs;\n";
+    toShaderStr << "uniform vec3 in_coordTexSizes;\n";
+    toShaderStr << "uniform vec3 in_coordsScale;\n";
+    toShaderStr << "uniform vec3 in_coordsBias;\n";
+    toShaderStr << "uniform vec2 in_coordsRange[3];\n";
+  }
+
+  vtkSmartPointer<vtkUniformGrid> uGrid = vtkUniformGrid::SafeDownCast(mapper->GetInput());
+  if (uGrid && (uGrid->GetPointGhostArray() || uGrid->GetCellGhostArray()))
+  {
+    toShaderStr << "uniform sampler3D in_blanking;\n";
+  }
 
   toShaderStr << "uniform int in_noOfComponents;\n"
                  "uniform int in_independentComponents;\n"
@@ -397,7 +414,7 @@ std::string BaseInit(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* mapper,
     shaderStr += std::string("\
         \n  if (in_useJittering)\
         \n  {\
-        \n    float jitterValue = texture2D(in_noiseSampler, gl_FragCoord.xy / textureSize(in_noiseSampler, 0)).x;\
+        \n    float jitterValue = texture2D(in_noiseSampler, gl_FragCoord.xy / vec2(textureSize(in_noiseSampler, 0))).x;\
         \n    g_rayJitter = g_dirStep * jitterValue;\
         \n  }\
         \n  else\
@@ -434,6 +451,98 @@ std::string BaseImplementation(
 
   std::string str("\
       \n    g_skip = false;");
+
+  vtkSmartPointer<vtkUniformGrid> uGrid = vtkUniformGrid::SafeDownCast(mapper->GetInput());
+  if (uGrid)
+  {
+    bool blankCells = (uGrid->GetCellGhostArray() != nullptr);
+    bool blankPoints = (uGrid->GetPointGhostArray() != nullptr);
+    if (blankPoints || blankCells)
+    {
+      str += std::string("\
+          \n     // Check whether the neighboring points/cells are blank.\
+          \n     // Note the half cellStep because texels are point centered.\
+          \n     vec3 xvec = vec3(in_cellStep[0].x/2.0, 0.0, 0.0);\
+          \n     vec3 yvec = vec3(0.0, in_cellStep[0].y/2.0, 0.0);\
+          \n     vec3 zvec = vec3(0.0, 0.0, in_cellStep[0].z/2.0);\
+          \n     vec3 texPosPVec[3];\
+          \n     texPosPVec[0] = g_dataPos + xvec;\
+          \n     texPosPVec[1] = g_dataPos + yvec;\
+          \n     texPosPVec[2] = g_dataPos + zvec;\
+          \n     vec3 texPosNVec[3];\
+          \n     texPosNVec[0] = g_dataPos - xvec;\
+          \n     texPosNVec[1] = g_dataPos - yvec;\
+          \n     texPosNVec[2] = g_dataPos - zvec;\
+          \n     vec4 blankValue = texture3D(in_blanking, g_dataPos);\
+          \n     vec4 blankValueXP = texture3D(in_blanking, texPosPVec[0]);\
+          \n     vec4 blankValueYP = texture3D(in_blanking, texPosPVec[1]);\
+          \n     vec4 blankValueZP = texture3D(in_blanking, texPosPVec[2]);\
+          \n     vec4 blankValueXN = texture3D(in_blanking, texPosNVec[0]);\
+          \n     vec4 blankValueYN = texture3D(in_blanking, texPosNVec[1]);\
+          \n     vec4 blankValueZN = texture3D(in_blanking, texPosNVec[2]);\
+          \n     vec3 blankValuePx;\
+          \n     blankValuePx[0] = blankValueXP.x;\
+          \n     blankValuePx[1] = blankValueYP.x;\
+          \n     blankValuePx[2] = blankValueZP.x;\
+          \n     vec3 blankValuePy;\
+          \n     blankValuePy[0] = blankValueXP.y;\
+          \n     blankValuePy[1] = blankValueYP.y;\
+          \n     blankValuePy[2] = blankValueZP.y;\
+          \n     vec3 blankValueNx;\
+          \n     blankValueNx[0] = blankValueXN.x;\
+          \n     blankValueNx[1] = blankValueYN.x;\
+          \n     blankValueNx[2] = blankValueZN.x;\
+          \n     vec3 blankValueNy;\
+          \n     blankValueNy[0] = blankValueXN.y;\
+          \n     blankValueNy[1] = blankValueYN.y;\
+          \n     blankValueNy[2] = blankValueZN.y;\
+          \n");
+      if (blankPoints)
+      {
+        str += std::string("\
+            \n    // If the current or neighboring points\
+            \n    // (that belong to cells that share this texel) are blanked,\
+            \n    // skip the texel. In other words, if point 1 were blank,\
+            \n    // texels 0, 1 and 2 would have to be skipped.\
+            \n    if (blankValue.x > 0.0 ||\
+            \n        any(greaterThan(blankValueNx, vec3(0.0))) ||\
+            \n        any(greaterThan(blankValuePx, vec3(0.0))))\
+            \n      {\
+            \n      // skip this texel\
+            \n      g_skip = true;\
+            \n      }\
+            \n");
+        if (blankCells)
+        {
+          str += std::string("\
+              \n    // If the current or previous cells (that share this texel)\
+              \n    // are blanked, skip the texel. In other words, if cell 1\
+              \n    // is blanked, texels 1 and 2 would have to be skipped.\
+              \n    else if (blankValue.y > 0.0 ||\
+              \n             any(greaterThan(blankValueNy, vec3(0.0))))\
+              \n      {\
+              \n      // skip this texel\
+              \n      g_skip = true;\
+              \n      }\
+              \n");
+        }
+      }
+      else if (blankCells)
+      {
+        str += std::string("\
+            \n    // If the current or previous cells (that share this texel)\
+            \n    // are blanked, skip the texel. In other words, if cell 1\
+            \n    // is blanked, texels 1 and 2 would have to be skipped.\
+            \n    if (blankValue.x > 0.0 ||\
+            \n        any(greaterThan(blankValuePx, vec3(0.0))))\
+            \n      {\
+            \n      // skip this texel\
+            \n      g_skip = true;\
+            \n      }\
+            \n");
+      }
+    }
+  }
 
   if (glMapper->GetBlendMode() == vtkVolumeMapper::SLICE_BLEND)
   {
@@ -940,7 +1049,7 @@ std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
           \n  {\
           \n  return computeLighting(vec4(texture2D(" +
       colorTableMap[0] + ",\
-          \n                         vec2(scalar.w, 0.0)).xyz, opacity), 0, 0);\
+          \n                         vec2(scalar.w, 0.0)).xyz, opacity), 0, 0.0);\
           \n  }");
     return shaderStr;
   }
@@ -968,7 +1077,7 @@ std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
             \n      scalar[" +
         toString.str() + "],0.0)).xyz,\
             \n      opacity)," +
-        toString.str() + ", 0);\
+        toString.str() + ", 0.0);\
             \n    }");
 
       // Reset
@@ -987,7 +1096,7 @@ std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
           \n  return computeLighting(vec4(texture2D(" +
       colorTableMap[0] + ",\
           \n                                        vec2(scalar.x, 0.0)).xyz,\
-          \n                              opacity), 0, 0);\
+          \n                              opacity), 0, 0.0);\
           \n  }");
     return shaderStr;
   }
@@ -996,7 +1105,7 @@ std::string ComputeColorDeclaration(vtkRenderer* vtkNotUsed(ren),
     shaderStr += std::string("\
           \nvec4 computeColor(vec4 scalar, float opacity)\
           \n  {\
-          \n  return computeLighting(vec4(scalar.xyz, opacity), 0, 0);\
+          \n  return computeLighting(vec4(scalar.xyz, opacity), 0, 0.0);\
           \n  }");
     return shaderStr;
   }
@@ -1148,7 +1257,7 @@ std::string ComputeColor2DDeclaration(vtkRenderer* vtkNotUsed(ren),
       colorTableMap[0] +
       ",\n"
       "    vec2(scalar.w, g_gradients_0[0].w));\n"
-      "  return computeLighting(color, 0, 0);\n"
+      "  return computeLighting(color, 0, 0.0);\n"
       "}\n");
   }
   else if (noOfComponents > 1 && independentComponents)
@@ -1174,7 +1283,7 @@ std::string ComputeColor2DDeclaration(vtkRenderer* vtkNotUsed(ren),
         "].w));\n"
         "    return computeLighting(color, " +
         num +
-        ", 0);\n"
+        ", 0.0);\n"
         "  }\n");
     }
     shaderStr += std::string("}\n");
@@ -1190,14 +1299,14 @@ std::string ComputeColor2DDeclaration(vtkRenderer* vtkNotUsed(ren),
       colorTableMap[0] +
       ",\n"
       "    vec2(scalar.x, g_gradients_0[0].w));\n"
-      "  return computeLighting(color, 0, 0);\n"
+      "  return computeLighting(color, 0, 0.0);\n"
       "}\n");
   }
   else
   {
     return std::string("vec4 computeColor(vec4 scalar, float opacity)\n"
                        "{\n"
-                       "  return computeLighting(vec4(scalar.xyz, opacity), 0, 0);\n"
+                       "  return computeLighting(vec4(scalar.xyz, opacity), 0, 0.0);\n"
                        "}\n");
   }
 }
@@ -1537,7 +1646,60 @@ std::string ShadingSingleInput(vtkRenderer* vtkNotUsed(ren), vtkVolumeMapper* ma
   shaderStr += std::string("\
       \n    if (!g_skip)\
       \n      {\
-      \n      vec4 scalar = texture3D(in_volume[0], g_dataPos);");
+      \n      vec4 scalar;\
+      \n");
+  if (vtkRectilinearGrid::SafeDownCast(mapper->GetInput()))
+  {
+    shaderStr += std::string("\
+      \n      // Compute IJK vertex position for current sample in the rectilinear grid\
+      \n      vec4 dataPosWorld = in_volumeMatrix[0] * in_textureDatasetMatrix[0] * vec4(g_dataPos, 1.0);\
+      \n      dataPosWorld = dataPosWorld / dataPosWorld.w;\
+      \n      dataPosWorld.w = 1.0;\
+      \n      ivec3 ijk = ivec3(0);\
+      \n      vec3 ijkTexCoord = vec3(0.0);\
+      \n      vec3 pCoords = vec3(0.0);\
+      \n      vec3 xPrev, xNext, tmp;\
+      \n      int sz = textureSize(in_coordTexs, 0);\
+      \n      vec4 dataPosWorldScaled = dataPosWorld * vec4(in_coordsScale, 1.0) +\
+      \n                                vec4(in_coordsBias, 1.0);\
+      \n      for (int j = 0; j < 3; ++j)\
+      \n        {\
+      \n        xPrev = texture1D(in_coordTexs, 0.0).xyz;\
+      \n        xNext = texture1D(in_coordTexs, (in_coordTexSizes[j] - 1) / sz).xyz;\
+      \n        if (xNext[j] < xPrev[j])\
+      \n          {\
+      \n          tmp = xNext;\
+      \n          xNext = xPrev;\
+      \n          xPrev = tmp;\
+      \n          }\
+      \n        for (int i = 0; i < int(in_coordTexSizes[j]); i++)\
+      \n          {\
+      \n          xNext = texture1D(in_coordTexs, (i + 0.5) / sz).xyz;\
+      \n          if (dataPosWorldScaled[j] >= xPrev[j] && dataPosWorldScaled[j] < xNext[j])\
+      \n            {\
+      \n            ijk[j] = i - 1;\
+      \n            pCoords[j] = (dataPosWorldScaled[j] - xPrev[j]) / (xNext[j] - xPrev[j]);\
+      \n            break;\
+      \n            }\
+      \n          else if (dataPosWorldScaled[j] == xNext[j])\
+      \n            {\
+      \n            ijk[j] = i - 1;\
+      \n            pCoords[j] = 1.0;\
+      \n            break;\
+      \n            }\
+      \n          xPrev = xNext;\
+      \n          }\
+      \n        ijkTexCoord[j] = (ijk[j] + pCoords[j]) / in_coordTexSizes[j];\
+      \n        }\
+      \n      scalar = texture3D(in_volume[0], sign(in_cellSpacing[0]) * ijkTexCoord);\
+      \n");
+  }
+  else
+  {
+    shaderStr += std::string("\
+      \n      scalar = texture3D(in_volume[0], g_dataPos);\
+      \n");
+  }
 
   // simulate old intensity textures
   if (noOfComponents == 1)
@@ -2408,7 +2570,7 @@ std::string ClippingDeclarationFragment(
       \n    }\
       \n\
       \n    float rayDotNormal = dot(clip_rayDirObj, planeNormal);\
-      \n    bool frontFace = rayDotNormal > 0;\
+      \n    bool frontFace = rayDotNormal > 0.0;\
       \n\
       \n    // Move the start position further from the eye if needed:\
       \n    if (frontFace && // Observing from the clipped side (plane's front face)\
@@ -2600,7 +2762,11 @@ std::string CompositeMaskImplementation(vtkRenderer* vtkNotUsed(ren),
     return shaderStr + std::string("\
         \nif (in_maskBlendFactor == 0.0)\
         \n  {\
-        \n  g_srcColor = computeColor(scalar, computeOpacity(scalar));\
+        \n  g_srcColor.a = computeOpacity(scalar);\
+        \n  if (g_srcColor.a > 0)\
+        \n    {\
+        \n    g_srcColor = computeColor(scalar, g_srcColor.a);\
+        \n    }\
         \n  }\
         \nelse\
         \n  {\
@@ -2621,18 +2787,25 @@ std::string CompositeMaskImplementation(vtkRenderer* vtkNotUsed(ren),
         \n    }\
         \n  if(maskValue.r == 0.0)\
         \n    {\
-        \n    g_srcColor = computeColor(scalar, opacity);\
+        \n    g_srcColor.a = opacity;\
+        \n    if (g_srcColor.a > 0)\
+        \n      {\
+        \n      g_srcColor = computeColor(scalar, g_srcColor.a);\
+        \n      }\
         \n    }\
         \n  else\
         \n    {\
         \n    g_srcColor = texture2D(in_labelMapTransfer,\
         \n                           vec2(scalar.r, maskValue.r));\
-        \n    g_srcColor = computeLighting(g_srcColor, 0, maskValue.r);\
+        \n    if (g_srcColor.a > 0)\
+        \n      {\
+        \n      g_srcColor = computeLighting(g_srcColor, 0, maskValue.r);\
+        \n      }\
         \n    if (in_maskBlendFactor < 1.0)\
         \n      {\
-        \n      g_srcColor = (1.0 - in_maskBlendFactor) *\
-        \n                   computeColor(scalar, opacity) +\
-        \n                   in_maskBlendFactor * g_srcColor;\
+        \n      vec4 color = opacity > 0 ? computeColor(scalar, opacity) : vec4(0);\
+        \n      g_srcColor = (1.0 - in_maskBlendFactor) * color +\
+        \n                           in_maskBlendFactor * g_srcColor;\
         \n      }\
         \n    }\
         \n  }");

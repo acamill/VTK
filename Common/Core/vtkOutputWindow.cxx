@@ -48,7 +48,7 @@ public:
 };
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOutputWindow* vtkOutputWindow::Instance = nullptr;
 static unsigned int vtkOutputWindowCleanupCounter = 0;
 
@@ -282,7 +282,7 @@ void vtkOutputWindow::DisplayText(const char* txt)
     }
     if (c == 'q')
     {
-      this->PromptUser = 0;
+      this->PromptUser = false;
     }
   }
 
@@ -368,7 +368,6 @@ void vtkOutputWindow::SetInstance(vtkOutputWindow* instance)
   instance->Register(nullptr);
 }
 
-#if !defined(VTK_LEGACY_REMOVE)
 void vtkOutputWindow::SetUseStdErrorForAllMessages(bool val)
 {
   VTK_LEGACY_REPLACED_BODY(
@@ -396,4 +395,3 @@ void vtkOutputWindow::UseStdErrorForAllMessagesOff()
     vtkOutputWindow::UseStdErrorForAllMessagesOff, "VTK 9.0", vtkOutputWindow::SetDisplayMode);
   this->SetDisplayMode(DEFAULT);
 }
-#endif

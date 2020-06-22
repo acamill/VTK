@@ -12,6 +12,10 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+
+// Hide VTK_DEPRECATED_IN_9_0_0() warnings for this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkLagrangeTetra.h"
 
 #include "vtkDoubleArray.h"
@@ -24,13 +28,13 @@
 #include "vtkTetra.h"
 
 vtkStandardNewMacro(vtkLagrangeTetra);
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLagrangeTetra::vtkLagrangeTetra()
   : vtkHigherOrderTetra()
 {
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkLagrangeTetra::~vtkLagrangeTetra() = default;
 
 void vtkLagrangeTetra::PrintSelf(ostream& os, vtkIndent indent)
@@ -41,18 +45,36 @@ void vtkLagrangeTetra::PrintSelf(ostream& os, vtkIndent indent)
 vtkCell* vtkLagrangeTetra::GetEdge(int edgeId)
 {
   vtkLagrangeCurve* result = EdgeCell;
-  this->GetEdgeWithoutRationalWeights(result, edgeId);
+  const auto set_number_of_ids_and_points = [&](const vtkIdType& npts) -> void {
+    result->Points->SetNumberOfPoints(npts);
+    result->PointIds->SetNumberOfIds(npts);
+  };
+  const auto set_ids_and_points = [&](const vtkIdType& face_id, const vtkIdType& vol_id) -> void {
+    result->Points->SetPoint(face_id, this->Points->GetPoint(vol_id));
+    result->PointIds->SetId(face_id, this->PointIds->GetId(vol_id));
+  };
+
+  this->SetEdgeIdsAndPoints(edgeId, set_number_of_ids_and_points, set_ids_and_points);
   return result;
 }
 
 vtkCell* vtkLagrangeTetra::GetFace(int faceId)
 {
   vtkLagrangeTriangle* result = FaceCell;
-  this->GetFaceWithoutRationalWeights(result, faceId);
+  const auto set_number_of_ids_and_points = [&](const vtkIdType& npts) -> void {
+    result->Points->SetNumberOfPoints(npts);
+    result->PointIds->SetNumberOfIds(npts);
+  };
+  const auto set_ids_and_points = [&](const vtkIdType& face_id, const vtkIdType& vol_id) -> void {
+    result->Points->SetPoint(face_id, this->Points->GetPoint(vol_id));
+    result->PointIds->SetId(face_id, this->PointIds->GetId(vol_id));
+  };
+
+  this->SetFaceIdsAndPoints(result, faceId, set_number_of_ids_and_points, set_ids_and_points);
   return result;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangeTetra::InterpolateFunctions(const double pcoords[3], double* weights)
 {
   // Adapted from P. Silvester, "High-Order Polynomial Triangular Finite
@@ -128,7 +150,7 @@ void vtkLagrangeTetra::InterpolateFunctions(const double pcoords[3], double* wei
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkLagrangeTetra::InterpolateDerivs(const double pcoords[3], double* derivs)
 {
   // Analytic differentiation of the tetra shape functions, as adapted from

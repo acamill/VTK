@@ -64,7 +64,6 @@
 
 #include "vtkNew.h"          // vtkSmartPointer
 #include "vtkSmartPointer.h" // vtkSmartPointer
-// #include "vtkPointData.h" // vtkPointData
 
 #include <cassert> // std::assert
 #include <map>     // std::map
@@ -90,7 +89,7 @@ class vtkIdTypeArray;
 class vtkLine;
 class vtkPixel;
 class vtkPoints;
-class vtkPointData;
+class vtkCellData;
 class vtkUnsignedCharArray;
 
 class VTKCOMMONDATAMODEL_EXPORT vtkHyperTreeGrid : public vtkDataObject
@@ -651,7 +650,7 @@ public:
   class VTKCOMMONDATAMODEL_EXPORT vtkHyperTreeGridIterator
   {
   public:
-    vtkHyperTreeGridIterator() {}
+    vtkHyperTreeGridIterator() = default;
 
     /**
      * Initialize the iterator on the tree set of the given grid.
@@ -671,7 +670,7 @@ public:
     vtkHyperTree* GetNextTree();
 
   protected:
-    std::map<vtkIdType, vtkSmartPointer<vtkHyperTree> >::iterator Iterator;
+    std::map<vtkIdType, vtkSmartPointer<vtkHyperTree>>::iterator Iterator;
     vtkHyperTreeGrid* Grid;
   };
 
@@ -715,13 +714,25 @@ public:
    */
   void GetCenter(double center[3]);
 
-  //@{
   /**
-   * Return a pointer to this dataset's point/tree data.
+   * Return a pointer to this dataset's hypertree node data.
    * THIS METHOD IS THREAD SAFE
    */
-  vtkPointData* GetPointData();
-  //@}
+  vtkCellData* GetCellData();
+
+  /**
+   * Returns the hypertree node field data stored as cell data.
+   * If type != vtkDataObject::AttributeTypes::CELL,
+   * it defers to vtkDataObject;
+   */
+  vtkFieldData* GetAttributesAsFieldData(int type) override;
+
+  /**
+   * Returns the number of nodes.
+   * Ii type == vtkDataObject::AttributeTypes::CELL,
+   * it defers to vtkDataObject.
+   */
+  vtkIdType GetNumberOfElements(int type) override;
 
 protected:
   /**
@@ -732,7 +743,7 @@ protected:
   /**
    * Destructor
    */
-  virtual ~vtkHyperTreeGrid() override;
+  ~vtkHyperTreeGrid() override;
 
   /**
    * JB ModeSqueeze
@@ -786,9 +797,9 @@ protected:
   char* InterfaceNormalsName;
   char* InterfaceInterceptsName;
 
-  std::map<vtkIdType, vtkSmartPointer<vtkHyperTree> > HyperTrees;
+  std::map<vtkIdType, vtkSmartPointer<vtkHyperTree>> HyperTrees;
 
-  vtkNew<vtkPointData> PointData; // Scalars, vectors, etc. associated w/ each point
+  vtkNew<vtkCellData> CellData; // Scalars, vectors, etc. associated w/ each point
 
   unsigned int DepthLimiter;
 

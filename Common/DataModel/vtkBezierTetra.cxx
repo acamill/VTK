@@ -12,6 +12,10 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
+
+// Hide VTK_DEPRECATED_IN_9_0_0() warnings for this class.
+#define VTK_DEPRECATION_LEVEL 0
+
 #include "vtkBezierTetra.h"
 #include "vtkBezierInterpolation.h"
 
@@ -27,13 +31,13 @@
 #include "vtkTetra.h"
 
 vtkStandardNewMacro(vtkBezierTetra);
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkBezierTetra::vtkBezierTetra()
   : vtkHigherOrderTetra()
 {
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkBezierTetra::~vtkBezierTetra() = default;
 
 void vtkBezierTetra::PrintSelf(ostream& os, vtkIndent indent)
@@ -44,32 +48,68 @@ void vtkBezierTetra::PrintSelf(ostream& os, vtkIndent indent)
 vtkCell* vtkBezierTetra::GetEdge(int edgeId)
 {
   vtkBezierCurve* result = EdgeCell;
-  this->GetEdgeWithoutRationalWeights(result, edgeId);
-
   if (this->GetRationalWeights()->GetNumberOfTuples() > 0)
   {
-    vtkIdType npts = result->Points->GetNumberOfPoints();
-    result->GetRationalWeights()->SetNumberOfTuples(npts);
-    for (vtkIdType i = 0; i < npts; i++)
-      result->GetRationalWeights()->SetValue(
-        i, this->GetRationalWeights()->GetValue(result->PointIds->GetId(i)));
+    const auto set_number_of_ids_and_points = [&](const vtkIdType& npts) -> void {
+      result->Points->SetNumberOfPoints(npts);
+      result->PointIds->SetNumberOfIds(npts);
+      result->GetRationalWeights()->SetNumberOfTuples(npts);
+    };
+    const auto set_ids_and_points = [&](const vtkIdType& edge_id, const vtkIdType& vol_id) -> void {
+      result->Points->SetPoint(edge_id, this->Points->GetPoint(vol_id));
+      result->PointIds->SetId(edge_id, this->PointIds->GetId(vol_id));
+      result->GetRationalWeights()->SetValue(edge_id, this->GetRationalWeights()->GetValue(vol_id));
+    };
+    this->SetEdgeIdsAndPoints(edgeId, set_number_of_ids_and_points, set_ids_and_points);
   }
+  else
+  {
+    const auto set_number_of_ids_and_points = [&](const vtkIdType& npts) -> void {
+      result->Points->SetNumberOfPoints(npts);
+      result->PointIds->SetNumberOfIds(npts);
+      result->GetRationalWeights()->Reset();
+    };
+    const auto set_ids_and_points = [&](const vtkIdType& edge_id, const vtkIdType& vol_id) -> void {
+      result->Points->SetPoint(edge_id, this->Points->GetPoint(vol_id));
+      result->PointIds->SetId(edge_id, this->PointIds->GetId(vol_id));
+    };
+    this->SetEdgeIdsAndPoints(edgeId, set_number_of_ids_and_points, set_ids_and_points);
+  }
+
   return result;
 }
 
 vtkCell* vtkBezierTetra::GetFace(int faceId)
 {
   vtkBezierTriangle* result = FaceCell;
-  this->GetFaceWithoutRationalWeights(result, faceId);
-
   if (this->GetRationalWeights()->GetNumberOfTuples() > 0)
   {
-    vtkIdType npts = result->Points->GetNumberOfPoints();
-    result->GetRationalWeights()->SetNumberOfTuples(npts);
-    for (vtkIdType i = 0; i < npts; i++)
-      result->GetRationalWeights()->SetValue(
-        i, this->GetRationalWeights()->GetValue(result->PointIds->GetId(i)));
+    const auto set_number_of_ids_and_points = [&](const vtkIdType& npts) -> void {
+      result->Points->SetNumberOfPoints(npts);
+      result->PointIds->SetNumberOfIds(npts);
+      result->GetRationalWeights()->SetNumberOfTuples(npts);
+    };
+    const auto set_ids_and_points = [&](const vtkIdType& face_id, const vtkIdType& vol_id) -> void {
+      result->Points->SetPoint(face_id, this->Points->GetPoint(vol_id));
+      result->PointIds->SetId(face_id, this->PointIds->GetId(vol_id));
+      result->GetRationalWeights()->SetValue(face_id, this->GetRationalWeights()->GetValue(vol_id));
+    };
+    this->SetFaceIdsAndPoints(result, faceId, set_number_of_ids_and_points, set_ids_and_points);
   }
+  else
+  {
+    const auto set_number_of_ids_and_points = [&](const vtkIdType& npts) -> void {
+      result->Points->SetNumberOfPoints(npts);
+      result->PointIds->SetNumberOfIds(npts);
+      result->GetRationalWeights()->Reset();
+    };
+    const auto set_ids_and_points = [&](const vtkIdType& face_id, const vtkIdType& vol_id) -> void {
+      result->Points->SetPoint(face_id, this->Points->GetPoint(vol_id));
+      result->PointIds->SetId(face_id, this->PointIds->GetId(vol_id));
+    };
+    this->SetFaceIdsAndPoints(result, faceId, set_number_of_ids_and_points, set_ids_and_points);
+  }
+
   return result;
 }
 
@@ -100,9 +140,11 @@ void vtkBezierTetra::SetRationalWeightsFromPointData(
       this->GetRationalWeights()->SetValue(i, v->GetTuple1(this->PointIds->GetId(i)));
     }
   }
+  else
+    this->GetRationalWeights()->Reset();
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkBezierTetra::InterpolateFunctions(const double pcoords[3], double* weights)
 {
   const int dim = 3;
@@ -134,7 +176,7 @@ void vtkBezierTetra::InterpolateFunctions(const double pcoords[3], double* weigh
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkBezierTetra::InterpolateDerivs(const double pcoords[3], double* derivs)
 {
   const int dim = 3;

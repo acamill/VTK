@@ -19,10 +19,6 @@
 #include <cstring>
 #include <sys/time.h>
 
-// We have to define XTSTRINGDEFINES (used in X11/StringDefs.h and X11/Shell.h)
-// otherwise the string are define as char * instead of const char which can
-// cause warnings.
-// #define XTSTRINGDEFINES
 #include "vtkActor.h"
 #include "vtkCallbackCommand.h"
 #include "vtkCommand.h"
@@ -33,7 +29,6 @@
 
 #include <vtksys/SystemTools.hxx>
 
-#include <X11/Shell.h>
 #include <X11/X.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -66,7 +61,7 @@ class vtkXRenderWindowInteractorInternals
 {
 public:
   vtkXRenderWindowInteractorInternals() { this->TimerIdCount = 1; }
-  ~vtkXRenderWindowInteractorInternals() {}
+  ~vtkXRenderWindowInteractorInternals() = default;
 
   // duration is in milliseconds
   int CreateLocalTimer(unsigned long duration)
@@ -82,7 +77,7 @@ public:
   void GetTimeToNextTimer(timeval& tv)
   {
     uint64_t lowestDelta = 1000000;
-    if (this->LocalToTimer.size())
+    if (!this->LocalToTimer.empty())
     {
       timeval ctv;
       gettimeofday(&ctv, nullptr);
@@ -102,7 +97,7 @@ public:
 
   void FireTimers(vtkXRenderWindowInteractor* rwi)
   {
-    if (this->LocalToTimer.size())
+    if (!this->LocalToTimer.empty())
     {
       timeval ctv;
       gettimeofday(&ctv, nullptr);
@@ -138,12 +133,10 @@ private:
   std::map<int, vtkXRenderWindowInteractorTimer> LocalToTimer;
 };
 
-int vtkXRenderWindowInteractor::BreakLoopFlag = 1;
-
 // for some reason the X11 def of KeySym is getting messed up
 typedef XID vtkKeySym;
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXRenderWindowInteractor::vtkXRenderWindowInteractor()
 {
   this->Internal = new vtkXRenderWindowInteractorInternals;
@@ -158,7 +151,7 @@ vtkXRenderWindowInteractor::vtkXRenderWindowInteractor()
   this->XdndFinishedAtom = 0;
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkXRenderWindowInteractor::~vtkXRenderWindowInteractor()
 {
   this->Disable();
@@ -166,18 +159,18 @@ vtkXRenderWindowInteractor::~vtkXRenderWindowInteractor()
   delete this->Internal;
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // TerminateApp() notifies the event loop to exit.
 // The event loop is started by Start() or by one own's method.
 // This results in Start() returning to its caller.
 void vtkXRenderWindowInteractor::TerminateApp()
 {
-  if (this->BreakLoopFlag)
+  if (this->Done)
   {
     return;
   }
 
-  this->BreakLoopFlag = 1;
+  this->Done = true;
 
   // Send a VTK_BreakXtLoop ClientMessage event to be sure we pop out of the
   // event loop.  This "wakes up" the event loop.  Otherwise, it might sit idle
@@ -198,41 +191,17 @@ void vtkXRenderWindowInteractor::TerminateApp()
   XFlush(client.display);
 }
 
-void vtkXRenderWindowInteractor::SetBreakLoopFlag(int f)
-{
-  if (f)
-  {
-    this->BreakLoopFlagOn();
-  }
-  else
-  {
-    this->BreakLoopFlagOff();
-  }
-}
-
-void vtkXRenderWindowInteractor::BreakLoopFlagOff()
-{
-  this->BreakLoopFlag = 0;
-  this->Modified();
-}
-
-void vtkXRenderWindowInteractor::BreakLoopFlagOn()
-{
-  this->TerminateApp();
-  this->Modified();
-}
-
 void vtkXRenderWindowInteractor::ProcessEvents()
 {
   XEvent event;
-  while (XPending(this->DisplayId) && this->BreakLoopFlag == 0)
+  while (XPending(this->DisplayId) && !this->Done)
   {
     XNextEvent(this->DisplayId, &event);
     this->DispatchEvent(&event);
   }
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // This will start up the X event loop. If you
 // call this method it will loop processing X events until the
 // loop is exited.
@@ -242,23 +211,17 @@ void vtkXRenderWindowInteractor::StartEventLoop()
   fd_set in_fds;
   struct timeval tv;
 
-  this->BreakLoopFlag = 0;
+  this->Done = false;
   do
   {
     if (XPending(this->DisplayId) == 0)
     {
       // get how long to wait for the next timer
       this->Internal->GetTimeToNextTimer(tv);
-      // do a select
+      // select will wait until 'tv' elapses or something else wakes us
       FD_ZERO(&in_fds);
       FD_SET(X11fd, &in_fds);
-      int num_ready_fds = select(X11fd + 1, &in_fds, nullptr, nullptr, &tv);
-      if (num_ready_fds > 0)
-      {
-        XEvent event;
-        XNextEvent(this->DisplayId, &event);
-        this->DispatchEvent(&event);
-      }
+      select(X11fd + 1, &in_fds, nullptr, nullptr, &tv);
     }
     else
     {
@@ -267,10 +230,10 @@ void vtkXRenderWindowInteractor::StartEventLoop()
       this->DispatchEvent(&event);
     }
     this->FireTimers();
-  } while (this->BreakLoopFlag == 0);
+  } while (!this->Done);
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Initializes the event handlers without an XtAppContext.  This is
 // good for when you don't have a user interface, but you still
 // want to have mouse interaction.
@@ -326,7 +289,7 @@ void vtkXRenderWindowInteractor::Initialize()
   this->Size[1] = size[1];
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::Enable()
 {
   // avoid cycles of calling Initialize() and Enable()
@@ -366,7 +329,7 @@ void vtkXRenderWindowInteractor::Enable()
   this->Modified();
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::Disable()
 {
   if (!this->Enabled)
@@ -379,15 +342,13 @@ void vtkXRenderWindowInteractor::Disable()
   this->Modified();
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-
-  os << indent << "BreakLoopFlag: " << (this->BreakLoopFlag ? "On\n" : "Off\n");
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::UpdateSize(int x, int y)
 {
   // if the size changed send this on to the RenderWindow
@@ -399,7 +360,7 @@ void vtkXRenderWindowInteractor::UpdateSize(int x, int y)
   }
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::UpdateSizeNoXResize(int x, int y)
 {
   // if the size changed send this on to the RenderWindow
@@ -412,7 +373,7 @@ void vtkXRenderWindowInteractor::UpdateSizeNoXResize(int x, int y)
   }
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::FireTimers()
 {
   if (this->GetEnabled())
@@ -421,7 +382,7 @@ void vtkXRenderWindowInteractor::FireTimers()
   }
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // X always creates one shot timers
 int vtkXRenderWindowInteractor::InternalCreateTimer(
   int vtkNotUsed(timerId), int vtkNotUsed(timerType), unsigned long duration)
@@ -431,14 +392,14 @@ int vtkXRenderWindowInteractor::InternalCreateTimer(
   return platformTimerId;
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkXRenderWindowInteractor::InternalDestroyTimer(int platformTimerId)
 {
   this->Internal->DestroyLocalTimer(platformTimerId);
   return 1;
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
 {
   int xp, yp;
@@ -821,7 +782,7 @@ void vtkXRenderWindowInteractor::DispatchEvent(XEvent* event)
   }
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkXRenderWindowInteractor::GetMousePosition(int* x, int* y)
 {
   Window root, child;
@@ -833,13 +794,13 @@ void vtkXRenderWindowInteractor::GetMousePosition(int* x, int* y)
   *y = this->Size[1] - *y - 1;
 }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // void vtkXRenderWindowInteractor::Timer(XtPointer client_data, XtIntervalId* id)
 // {
 //   vtkXRenderWindowInteractorTimer(client_data, id);
 // }
 
-//-------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // void vtkXRenderWindowInteractor::Callback(
 //   Widget w, XtPointer client_data, XEvent* event, Boolean* ctd)
 // {

@@ -57,7 +57,7 @@ public:
   using typename Superclass::ValueType;
 
   using VtkmTypesList = vtkm::List<T, vtkm::Vec<T, 2>, vtkm::Vec<T, 3>, vtkm::Vec<T, 4>,
-    vtkm::VecFromPortal<typename vtkm::cont::ArrayHandle<T>::PortalControl> >;
+    vtkm::VecFromPortal<typename vtkm::cont::ArrayHandle<T>::WritePortalType>>;
 
   static vtkmDataArray* New();
 
@@ -89,7 +89,7 @@ private:
   // To access AllocateTuples and ReallocateTuples
   friend Superclass;
 
-  std::unique_ptr<internal::ArrayHandleWrapperBase<T> > VtkmArray;
+  std::unique_ptr<internal::ArrayHandleWrapperBase<T>> VtkmArray;
 };
 
 //=============================================================================
@@ -121,7 +121,7 @@ extern template class VTKACCELERATORSVTKM_TEMPLATE_EXPORT vtkmDataArray<unsigned
 
 #endif // vtkmDataArray_h
 
-#include "vtkmDataArray.hxx"
+#include "vtkmlib/vtkmDataArray.hxx"
 
 #endif
 #endif

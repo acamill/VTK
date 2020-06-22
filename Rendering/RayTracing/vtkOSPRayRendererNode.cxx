@@ -46,7 +46,6 @@
 #include "vtkRenderer.h"
 #include "vtkTexture.h"
 #include "vtkTransform.h"
-#include "vtkViewNodeCollection.h"
 #include "vtkVolume.h"
 #include "vtkVolumeCollection.h"
 #include "vtkWeakPointer.h"
@@ -202,7 +201,7 @@ public:
   vtkOSPRayRendererNodeInternals(vtkOSPRayRendererNode* _owner)
     : Owner(_owner){};
 
-  ~vtkOSPRayRendererNodeInternals() {}
+  ~vtkOSPRayRendererNodeInternals() = default;
 
   bool CanReuseBG(bool forbackplate)
   {
@@ -416,7 +415,7 @@ public:
 //============================================================================
 vtkStandardNewMacro(vtkOSPRayRendererNode);
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOSPRayRendererNode::vtkOSPRayRendererNode()
 {
   this->ColorBufferTex = 0;
@@ -444,7 +443,7 @@ vtkOSPRayRendererNode::vtkOSPRayRendererNode()
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOSPRayRendererNode::~vtkOSPRayRendererNode()
 {
   if (this->Internal->Backend != nullptr)
@@ -458,7 +457,7 @@ vtkOSPRayRendererNode::~vtkOSPRayRendererNode()
   delete this->Internal;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetSamplesPerPixel(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -469,7 +468,7 @@ void vtkOSPRayRendererNode::SetSamplesPerPixel(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::SAMPLES_PER_PIXEL(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetSamplesPerPixel(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -484,7 +483,7 @@ int vtkOSPRayRendererNode::GetSamplesPerPixel(vtkRenderer* renderer)
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetMaxContribution(double value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -495,7 +494,7 @@ void vtkOSPRayRendererNode::SetMaxContribution(double value, vtkRenderer* render
   info->Set(vtkOSPRayRendererNode::MAX_CONTRIBUTION(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkOSPRayRendererNode::GetMaxContribution(vtkRenderer* renderer)
 {
   constexpr double DEFAULT_MAX_CONTRIBUTION = 2.0;
@@ -511,7 +510,7 @@ double vtkOSPRayRendererNode::GetMaxContribution(vtkRenderer* renderer)
   return DEFAULT_MAX_CONTRIBUTION;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetMaxDepth(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -522,7 +521,7 @@ void vtkOSPRayRendererNode::SetMaxDepth(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::MAX_DEPTH(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetMaxDepth(vtkRenderer* renderer)
 {
   constexpr int DEFAULT_MAX_DEPTH = 20;
@@ -538,7 +537,7 @@ int vtkOSPRayRendererNode::GetMaxDepth(vtkRenderer* renderer)
   return DEFAULT_MAX_DEPTH;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetMinContribution(double value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -549,7 +548,7 @@ void vtkOSPRayRendererNode::SetMinContribution(double value, vtkRenderer* render
   info->Set(vtkOSPRayRendererNode::MIN_CONTRIBUTION(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkOSPRayRendererNode::GetMinContribution(vtkRenderer* renderer)
 {
   constexpr double DEFAULT_MIN_CONTRIBUTION = 0.01;
@@ -565,7 +564,7 @@ double vtkOSPRayRendererNode::GetMinContribution(vtkRenderer* renderer)
   return DEFAULT_MIN_CONTRIBUTION;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetRouletteDepth(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -576,7 +575,7 @@ void vtkOSPRayRendererNode::SetRouletteDepth(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::ROULETTE_DEPTH(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetRouletteDepth(vtkRenderer* renderer)
 {
   constexpr int DEFAULT_ROULETTE_DEPTH = 5;
@@ -592,7 +591,7 @@ int vtkOSPRayRendererNode::GetRouletteDepth(vtkRenderer* renderer)
   return DEFAULT_ROULETTE_DEPTH;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetVarianceThreshold(double value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -603,7 +602,7 @@ void vtkOSPRayRendererNode::SetVarianceThreshold(double value, vtkRenderer* rend
   info->Set(vtkOSPRayRendererNode::VARIANCE_THRESHOLD(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkOSPRayRendererNode::GetVarianceThreshold(vtkRenderer* renderer)
 {
   constexpr double DEFAULT_VARIANCE_THRESHOLD = 0.3;
@@ -619,7 +618,7 @@ double vtkOSPRayRendererNode::GetVarianceThreshold(vtkRenderer* renderer)
   return DEFAULT_VARIANCE_THRESHOLD;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetMaterialLibrary(
   vtkOSPRayMaterialLibrary* value, vtkRenderer* renderer)
 {
@@ -631,7 +630,7 @@ void vtkOSPRayRendererNode::SetMaterialLibrary(
   info->Set(vtkOSPRayRendererNode::MATERIAL_LIBRARY(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 vtkOSPRayMaterialLibrary* vtkOSPRayRendererNode::GetMaterialLibrary(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -647,7 +646,7 @@ vtkOSPRayMaterialLibrary* vtkOSPRayRendererNode::GetMaterialLibrary(vtkRenderer*
   return nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetMaxFrames(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -658,7 +657,7 @@ void vtkOSPRayRendererNode::SetMaxFrames(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::MAX_FRAMES(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetMaxFrames(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -673,7 +672,7 @@ int vtkOSPRayRendererNode::GetMaxFrames(vtkRenderer* renderer)
   return 1;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetRendererType(std::string name, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -701,7 +700,7 @@ void vtkOSPRayRendererNode::SetRendererType(std::string name, vtkRenderer* rende
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 std::string vtkOSPRayRendererNode::GetRendererType(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -724,7 +723,7 @@ std::string vtkOSPRayRendererNode::GetRendererType(vtkRenderer* renderer)
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetAmbientSamples(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -735,7 +734,7 @@ void vtkOSPRayRendererNode::SetAmbientSamples(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::AMBIENT_SAMPLES(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetAmbientSamples(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -750,7 +749,7 @@ int vtkOSPRayRendererNode::GetAmbientSamples(vtkRenderer* renderer)
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetCompositeOnGL(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -761,7 +760,7 @@ void vtkOSPRayRendererNode::SetCompositeOnGL(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::COMPOSITE_ON_GL(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetCompositeOnGL(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -776,7 +775,7 @@ int vtkOSPRayRendererNode::GetCompositeOnGL(vtkRenderer* renderer)
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetNorthPole(double* value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -787,7 +786,7 @@ void vtkOSPRayRendererNode::SetNorthPole(double* value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::NORTH_POLE(), value, 3);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double* vtkOSPRayRendererNode::GetNorthPole(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -802,7 +801,7 @@ double* vtkOSPRayRendererNode::GetNorthPole(vtkRenderer* renderer)
   return nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetEastPole(double* value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -813,7 +812,7 @@ void vtkOSPRayRendererNode::SetEastPole(double* value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::EAST_POLE(), value, 3);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double* vtkOSPRayRendererNode::GetEastPole(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -828,7 +827,7 @@ double* vtkOSPRayRendererNode::GetEastPole(vtkRenderer* renderer)
   return nullptr;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetViewTime(double value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -839,7 +838,7 @@ void vtkOSPRayRendererNode::SetViewTime(double value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::VIEW_TIME(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 double vtkOSPRayRendererNode::GetViewTime(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -854,7 +853,7 @@ double vtkOSPRayRendererNode::GetViewTime(vtkRenderer* renderer)
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetTimeCacheSize(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -865,7 +864,7 @@ void vtkOSPRayRendererNode::SetTimeCacheSize(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::TIME_CACHE_SIZE(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetTimeCacheSize(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -880,7 +879,7 @@ int vtkOSPRayRendererNode::GetTimeCacheSize(vtkRenderer* renderer)
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetDenoiserThreshold(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -891,7 +890,7 @@ void vtkOSPRayRendererNode::SetDenoiserThreshold(int value, vtkRenderer* rendere
   info->Set(vtkOSPRayRendererNode::DENOISER_THRESHOLD(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetDenoiserThreshold(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -906,7 +905,7 @@ int vtkOSPRayRendererNode::GetDenoiserThreshold(vtkRenderer* renderer)
   return 4;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetEnableDenoiser(int value, vtkRenderer* renderer)
 {
   if (!renderer)
@@ -917,7 +916,7 @@ void vtkOSPRayRendererNode::SetEnableDenoiser(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::ENABLE_DENOISER(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetEnableDenoiser(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -932,7 +931,7 @@ int vtkOSPRayRendererNode::GetEnableDenoiser(vtkRenderer* renderer)
   return 0;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::SetBackgroundMode(int value, vtkRenderer* renderer)
 {
   if (!renderer || value < 0 || value > 3)
@@ -943,7 +942,7 @@ void vtkOSPRayRendererNode::SetBackgroundMode(int value, vtkRenderer* renderer)
   info->Set(vtkOSPRayRendererNode::BACKGROUND_MODE(), value);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 int vtkOSPRayRendererNode::GetBackgroundMode(vtkRenderer* renderer)
 {
   if (!renderer)
@@ -958,13 +957,13 @@ int vtkOSPRayRendererNode::GetBackgroundMode(vtkRenderer* renderer)
   return 2;
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::Traverse(int operation)
 {
   // do not override other passes
@@ -981,27 +980,23 @@ void vtkOSPRayRendererNode::Traverse(int operation)
   // camera
   // TODO: this repeated traversal to find things of particular types
   // is bad, find something smarter
-  vtkViewNodeCollection* nodes = this->GetChildren();
-  vtkCollectionIterator* it = nodes->NewIterator();
-  it->InitTraversal();
-  while (!it->IsDoneWithTraversal())
+  auto const& nodes = this->GetChildren();
+  for (auto node : nodes)
   {
-    vtkOSPRayCameraNode* child = vtkOSPRayCameraNode::SafeDownCast(it->GetCurrentObject());
+    vtkOSPRayCameraNode* child = vtkOSPRayCameraNode::SafeDownCast(node);
     if (child)
     {
       child->Traverse(operation);
       break;
     }
-    it->GoToNextItem();
   }
 
   // lights
   this->Lights.clear();
-  it->InitTraversal();
   bool hasAmbient = false;
-  while (!it->IsDoneWithTraversal())
+  for (auto node : nodes)
   {
-    vtkOSPRayLightNode* child = vtkOSPRayLightNode::SafeDownCast(it->GetCurrentObject());
+    vtkOSPRayLightNode* child = vtkOSPRayLightNode::SafeDownCast(node);
     if (child)
     {
       child->Traverse(operation);
@@ -1010,7 +1005,6 @@ void vtkOSPRayRendererNode::Traverse(int operation)
         hasAmbient = true;
       }
     }
-    it->GoToNextItem();
   }
 
   RTW::Backend* backend = this->Internal->Backend;
@@ -1035,22 +1029,21 @@ void vtkOSPRayRendererNode::Traverse(int operation)
   bool bgreused = envreused && bpreused;
   ospRelease(this->OLightArray);
   this->OLightArray = ospNewData(
-    this->Lights.size(), OSP_OBJECT, (this->Lights.size() ? &this->Lights[0] : nullptr), 0);
+    this->Lights.size(), OSP_OBJECT, (this->Lights.empty() ? nullptr : &this->Lights[0]), 0);
   ospSetData(oRenderer, "lights", this->OLightArray);
 
   // actors
   OSPModel oModel = nullptr;
-  it->InitTraversal();
   // since we have to spatially sort everything
   // let's see if we can avoid that in the common case when
   // the objects have not changed. Note we also cache in actornodes
   // to reuse already created ospray meshes
   vtkMTimeType recent = 0;
   int numAct = 0; // catches removed actors
-  while (!it->IsDoneWithTraversal())
+  for (auto node : nodes)
   {
-    vtkOSPRayActorNode* child = vtkOSPRayActorNode::SafeDownCast(it->GetCurrentObject());
-    vtkOSPRayVolumeNode* vchild = vtkOSPRayVolumeNode::SafeDownCast(it->GetCurrentObject());
+    vtkOSPRayActorNode* child = vtkOSPRayActorNode::SafeDownCast(node);
+    vtkOSPRayVolumeNode* vchild = vtkOSPRayVolumeNode::SafeDownCast(node);
     if (child)
     {
       numAct++;
@@ -1061,8 +1054,6 @@ void vtkOSPRayRendererNode::Traverse(int operation)
       numAct++;
       recent = std::max(recent, vchild->GetMTime());
     }
-
-    it->GoToNextItem();
   }
 
   bool enable_cache = true; // turn off to force rebuilds for debugging
@@ -1072,20 +1063,18 @@ void vtkOSPRayRendererNode::Traverse(int operation)
     ospRelease((OSPModel)this->OModel);
     oModel = ospNewModel();
     this->OModel = oModel;
-    it->InitTraversal();
-    while (!it->IsDoneWithTraversal())
+    for (auto node : nodes)
     {
-      vtkOSPRayActorNode* child = vtkOSPRayActorNode::SafeDownCast(it->GetCurrentObject());
+      vtkOSPRayActorNode* child = vtkOSPRayActorNode::SafeDownCast(node);
       if (child)
       {
         child->Traverse(operation);
       }
-      vtkOSPRayVolumeNode* vchild = vtkOSPRayVolumeNode::SafeDownCast(it->GetCurrentObject());
+      vtkOSPRayVolumeNode* vchild = vtkOSPRayVolumeNode::SafeDownCast(node);
       if (vchild)
       {
         vchild->Traverse(operation);
       }
-      it->GoToNextItem();
     }
     this->RenderTime = recent;
     ospCommit(oModel);
@@ -1098,7 +1087,6 @@ void vtkOSPRayRendererNode::Traverse(int operation)
     ospSetObject(oRenderer, "model", oModel);
     ospCommit(oRenderer);
   }
-  it->Delete();
 
   if (!bgreused)
   {
@@ -1108,7 +1096,7 @@ void vtkOSPRayRendererNode::Traverse(int operation)
   this->Apply(operation, false);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::Invalidate(bool prepass)
 {
   if (prepass)
@@ -1117,7 +1105,7 @@ void vtkOSPRayRendererNode::Invalidate(bool prepass)
   }
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::Build(bool prepass)
 {
   if (prepass)
@@ -1132,7 +1120,7 @@ void vtkOSPRayRendererNode::Build(bool prepass)
   this->Superclass::Build(prepass);
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::Render(bool prepass)
 {
   vtkRenderer* ren = vtkRenderer::SafeDownCast(this->GetRenderable());
@@ -1610,7 +1598,7 @@ void vtkOSPRayRendererNode::Denoise()
 #endif
 }
 
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 void vtkOSPRayRendererNode::WriteLayer(
   unsigned char* buffer, float* Z, int buffx, int buffy, int layer)
 {
