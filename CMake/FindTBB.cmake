@@ -333,6 +333,27 @@ foreach (dir IN LISTS TBB_PREFIX_PATH)
     ${dir}/include/tbb)
 endforeach ()
 
+# iOS uses a very different tbb setup
+if("${CMAKE_OSX_SYSROOT}" MATCHES "iPhoneOS")
+  foreach (arch IN LISTS CMAKE_OSX_ARCHITECTURES)
+    list(APPEND TBB_LIB_SEARCH_PATH ${TBB_PREFIX_PATH}/ios-device-${arch}/lib)
+  endforeach()
+
+  set(TBB_LIBRARY_NAMES tbb tbb_complete)
+  find_path(TBB_INCLUDE_DIR
+            NAMES tbb/tbb.h
+            PATHS ${TBB_INC_SEARCH_PATH}
+            NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
+
+  find_library(TBB_LIBRARY
+              NAMES ${TBB_LIBRARY_NAMES}
+              PATHS ${TBB_LIB_SEARCH_PATH}
+              NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
+  findpkg_finish(TBB tbb)
+  return()
+endif()
+
+
 set(TBB_LIBRARY_NAMES tbb)
 get_debug_names(TBB_LIBRARY_NAMES)
 
