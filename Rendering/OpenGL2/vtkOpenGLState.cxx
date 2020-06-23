@@ -1471,8 +1471,12 @@ void vtkOpenGLState::Reset()
 
   GLint ival;
 
+#ifdef GL_POINT_SIZE
   ::glGetFloatv(GL_POINT_SIZE, &cs.PointSize);
+#endif
+#ifdef GL_LINE_WIDTH
   ::glGetFloatv(GL_LINE_WIDTH, &cs.LineWidth);
+#endif
 
   ::glGetIntegerv(GL_PACK_ALIGNMENT, &cs.PackAlignment);
   ::glGetIntegerv(GL_UNPACK_ALIGNMENT, &cs.UnpackAlignment);
@@ -1562,8 +1566,12 @@ void vtkOpenGLState::Pop()
 
   ::glDepthMask(cs.DepthMask);
 
+#ifdef GL_POINT_SIZE
   ::glPointSize(cs.PointSize);
+#endif
+#ifdef GL_LINE_WIDTH
   ::glLineWidth(cs.LineWidth);
+#endif
 
   ::glPixelStorei(GL_PACK_ALIGNMENT, cs.PackAlignment);
   ::glPixelStorei(GL_UNPACK_ALIGNMENT, cs.UnpackAlignment);
@@ -1627,8 +1635,12 @@ void vtkOpenGLState::Initialize(vtkOpenGLRenderWindow*)
 
   ::glDepthFunc(cs.DepthFunc);
 
+#ifdef GL_POINT_SIZE
   ::glPointSize(cs.PointSize);
+#endif
+#ifdef GL_LINE_WIDTH
   ::glLineWidth(cs.LineWidth);
+#endif
 
   ::glPixelStorei(GL_PACK_ALIGNMENT, cs.PackAlignment);
   ::glPixelStorei(GL_UNPACK_ALIGNMENT, cs.UnpackAlignment);
