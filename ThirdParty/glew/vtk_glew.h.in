@@ -23,6 +23,8 @@
 
 /* Mobile device support. */
 #cmakedefine01 VTK_MODULE_vtkglew_GLES3
+#cmakedefine01 TARGET_OS_IPHONE
+#cmakedefine01 TARGET_IPHONE_SIMULATOR
 
 #ifdef __APPLE__
 #define GLES_SILENCE_DEPRECATION
