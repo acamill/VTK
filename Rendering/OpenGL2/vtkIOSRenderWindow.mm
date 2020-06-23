@@ -158,22 +158,13 @@ void vtkIOSRenderWindow::SetWindowName(const char* _arg)
 //----------------------------------------------------------------------------
 bool vtkIOSRenderWindow::InitializeFromCurrentContext()
 {
-  EAGLContext *currentContext = [EAGLContext currentContext];
+  EAGLContext* currentContext = [EAGLContext currentContext];
   if (currentContext != NULL)
-    {
-//     UIView *currentView = [currentContext view];
-//     if (currentView != NULL)
-//       {
-//       UIWindow *window = [currentView window];
-//       this->SetWindowId(currentView);
-//       this->SetRootWindow(window);
-      this->SetContextId((void*)currentContext);
-      this->OpenGLInit();
-      this->OwnContext = 0;
-      return this->Superclass::InitializeFromCurrentContext();
-//       }
-    }
-//  return false;
+  {
+    this->SetContextId((void*)currentContext);
+    return this->Superclass::InitializeFromCurrentContext();
+  }
+  return false;
 }
 
 //----------------------------------------------------------------------------
@@ -186,7 +177,8 @@ vtkTypeBool vtkIOSRenderWindow::GetEventPending()
 // Initialize the rendering process.
 void vtkIOSRenderWindow::Start()
 {
-  this->Initialize();
+  // Make sure to call your Super first
+  this->Superclass::Start();
 
   // set the current window
   this->MakeCurrent();
@@ -195,10 +187,10 @@ void vtkIOSRenderWindow::Start()
 //----------------------------------------------------------------------------
 void vtkIOSRenderWindow::MakeCurrent()
 {
-   if (this->GetContextId())
-   {
-     [EAGLContext setCurrentContext:(EAGLContext*)this->GetContextId()];
-   }
+  if (this->GetContextId())
+  {
+    [EAGLContext setCurrentContext:(EAGLContext*)this->GetContextId()];
+  }
 }
 
 // ----------------------------------------------------------------------------
