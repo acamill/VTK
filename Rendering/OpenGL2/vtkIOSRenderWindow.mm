@@ -42,6 +42,7 @@ vtkIOSRenderWindow::vtkIOSRenderWindow()
   this->ForceMakeCurrent = 0;
   this->OnScreenInitialized = 0;
   this->OffScreenInitialized = 0;
+  this->SetFrameBlitModeToBlitToCurrent();
 }
 
 void vtkIOSRenderWindow::BlitDisplayBuffersToHardware()
@@ -174,17 +175,6 @@ vtkTypeBool vtkIOSRenderWindow::GetEventPending()
 }
 
 //----------------------------------------------------------------------------
-// Initialize the rendering process.
-void vtkIOSRenderWindow::Start()
-{
-  // Make sure to call your Super first
-  this->Superclass::Start();
-
-  // set the current window
-  this->MakeCurrent();
-}
-
-//----------------------------------------------------------------------------
 void vtkIOSRenderWindow::MakeCurrent()
 {
   if (this->GetContextId())
@@ -271,9 +261,7 @@ void vtkIOSRenderWindow::SetSize(int width, int height)
 {
   if ((this->Size[0] != width) || (this->Size[1] != height) || this->GetParentId())
   {
-    this->Modified();
-    this->Size[0] = width;
-    this->Size[1] = height;
+    this->Superclass::SetSize(width, height);
   }
 }
 
