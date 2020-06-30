@@ -124,6 +124,9 @@ macro(findpkg_finish PREFIX TARGET_NAME)
     if (${PREFIX}_LIBRARY_DEBUG)
       tbb_extract_real_library(${${PREFIX}_LIBRARY_DEBUG} real_debug)
     endif ()
+    if (${PREFIX}_LIBRARY)
+      tbb_extract_real_library(${${PREFIX}_LIBRARY} real)
+    endif ()
     add_library(TBB::${TARGET_NAME} UNKNOWN IMPORTED)
     set_target_properties(TBB::${TARGET_NAME} PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${${PREFIX}_INCLUDE_DIR}")
@@ -138,6 +141,9 @@ macro(findpkg_finish PREFIX TARGET_NAME)
     elseif (${PREFIX}_LIBRARY_DEBUG)
       set_target_properties(TBB::${TARGET_NAME} PROPERTIES
         IMPORTED_LOCATION "${real_debug}")
+    elseif (${PREFIX}_LIBRARY)
+      set_target_properties(TBB::${TARGET_NAME} PROPERTIES
+        IMPORTED_LOCATION "${real}")
     endif ()
   endif ()
 
