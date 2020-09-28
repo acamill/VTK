@@ -117,6 +117,7 @@ set(module_options
   IOXML
   InteractionStyle
   InteractionWidgets
+  PoissonReconstruction
   RenderingFreeType
   RenderingImage
   RenderingLOD
@@ -187,6 +188,7 @@ set(ios_cmake_flags
   -DVTK_MODULE_ENABLE_VTK_RenderingImage:STRING=${enable_option_RenderingImage}
   -DVTK_MODULE_ENABLE_VTK_RenderingVolumeOpenGL2:STRING=${enable_option_RenderingVolumeOpenGL2}
   -DVTK_MODULE_ENABLE_VTK_RenderingLOD:STRING=${enable_option_RenderingLOD}
+  -DVTK_MODULE_ENABLE_VTK_PoissonReconstruction:STRING=${enable_option_PoissonReconstruction}
   ${DICOM_OPTION}
 )
 
