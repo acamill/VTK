@@ -170,10 +170,16 @@ set(ios_cmake_flags
   -DVTK_GROUP_ENABLE_Qt:STRING=DONT_WANT
   -DVTK_GROUP_ENABLE_Web:STRING=DONT_WANT
   -DVTK_SMP_IMPLEMENTATION_TYPE:STRING=${VTK_SMP_IMPLEMENTATION_TYPE}
-  -DVTK_MODULE_ENABLE_VTK_RenderingOpenGL2:STRING=${enable_option_RenderingOpenGL2}
-  -DVTK_MODULE_ENABLE_VTK_InteractionStyle:STRING=${enable_option_InteractionStyle}
-  -DVTK_MODULE_ENABLE_VTK_InteractionWidgets:STRING=${enable_option_InteractionWidgets}
+  #-DVTK_MODULE_ENABLE_VTK_RenderingOpenGL2:STRING=${enable_option_RenderingOpenGL2}
+  #-DVTK_MODULE_ENABLE_VTK_InteractionStyle:STRING=${enable_option_InteractionStyle}
+  #-DVTK_MODULE_ENABLE_VTK_InteractionWidgets:STRING=${enable_option_InteractionWidgets}
   -DVTK_MODULE_ENABLE_VTK_IOXML:STRING=${enable_option_IOXML}
+
+
+  -DVTK_MODULE_ENABLE_VTK_CommonCore:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_CommonColor:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_CommonDataModel:STRING=YES
+
   -DVTK_MODULE_ENABLE_VTK_FiltersHybrid:STRING=${enable_option_FiltersHybrid}
   -DVTK_MODULE_ENABLE_VTK_FiltersModeling:STRING=${enable_option_FiltersModeling}
   -DVTK_MODULE_ENABLE_VTK_FiltersParallel:STRING=${enable_option_FiltersParallel}
@@ -184,10 +190,11 @@ set(ios_cmake_flags
   -DVTK_MODULE_ENABLE_VTK_IOImage:STRING=${enable_option_IOImage}
   -DVTK_MODULE_ENABLE_VTK_IOPLY:STRING=${enable_option_IOPLY}
   -DVTK_MODULE_ENABLE_VTK_IOInfovis:STRING=${enable_option_IOInfovis}
-  -DVTK_MODULE_ENABLE_VTK_RenderingFreeType:STRING=${enable_option_RenderingFreeType}
-  -DVTK_MODULE_ENABLE_VTK_RenderingImage:STRING=${enable_option_RenderingImage}
-  -DVTK_MODULE_ENABLE_VTK_RenderingVolumeOpenGL2:STRING=${enable_option_RenderingVolumeOpenGL2}
-  -DVTK_MODULE_ENABLE_VTK_RenderingLOD:STRING=${enable_option_RenderingLOD}
+
+  #-DVTK_MODULE_ENABLE_VTK_RenderingFreeType:STRING=${enable_option_RenderingFreeType}
+  #-DVTK_MODULE_ENABLE_VTK_RenderingImage:STRING=${enable_option_RenderingImage}
+  #-DVTK_MODULE_ENABLE_VTK_RenderingVolumeOpenGL2:STRING=${enable_option_RenderingVolumeOpenGL2}
+  #-DVTK_MODULE_ENABLE_VTK_RenderingLOD:STRING=${enable_option_RenderingLOD}
   -DVTK_MODULE_ENABLE_VTK_PoissonReconstruction:STRING=${enable_option_PoissonReconstruction}
   ${DICOM_OPTION}
 )
