@@ -114,15 +114,14 @@ set(module_options
   IOInfovis
   IOLegacy
   IOPLY
-  IOXML
   InteractionStyle
   InteractionWidgets
-  PoissonReconstruction
   RenderingFreeType
   RenderingImage
   RenderingLOD
   RenderingOpenGL2
-  RenderingVolumeOpenGL2)
+  RenderingVolumeOpenGL2
+  PoissonReconstruction)
 
 set(IOXML_desc "Include IO/XML Module")
 set(InteractionStyle_desc "Include InteractionStyle module")
@@ -161,7 +160,7 @@ set(ios_cmake_flags
   -DBUILD_SHARED_LIBS:BOOL=OFF
   -DVTK_BUILD_TESTING:BOOL=OFF
   -DVTK_BUILD_EXAMPLES:BOOL=${VTK_BUILD_EXAMPLES}
-  -DVTK_USE_64BIT_IDS:BOOL=OFF
+  -DVTK_USE_64BIT_IDS:BOOL=ON
   -DVTK_GROUP_ENABLE_Rendering:STRING=DONT_WANT
   -DVTK_GROUP_ENABLE_StandAlone:STRING=DONT_WANT
   -DVTK_GROUP_ENABLE_Imaging:STRING=DONT_WANT
@@ -169,33 +168,33 @@ set(ios_cmake_flags
   -DVTK_GROUP_ENABLE_Views:STRING=DONT_WANT
   -DVTK_GROUP_ENABLE_Qt:STRING=DONT_WANT
   -DVTK_GROUP_ENABLE_Web:STRING=DONT_WANT
-  -DVTK_SMP_IMPLEMENTATION_TYPE:STRING=${VTK_SMP_IMPLEMENTATION_TYPE}
-  #-DVTK_MODULE_ENABLE_VTK_RenderingOpenGL2:STRING=${enable_option_RenderingOpenGL2}
-  #-DVTK_MODULE_ENABLE_VTK_InteractionStyle:STRING=${enable_option_InteractionStyle}
-  #-DVTK_MODULE_ENABLE_VTK_InteractionWidgets:STRING=${enable_option_InteractionWidgets}
-  -DVTK_MODULE_ENABLE_VTK_IOXML:STRING=${enable_option_IOXML}
-
-
+	# Common
   -DVTK_MODULE_ENABLE_VTK_CommonCore:STRING=YES
   -DVTK_MODULE_ENABLE_VTK_CommonColor:STRING=YES
   -DVTK_MODULE_ENABLE_VTK_CommonDataModel:STRING=YES
-
-  -DVTK_MODULE_ENABLE_VTK_FiltersHybrid:STRING=${enable_option_FiltersHybrid}
-  -DVTK_MODULE_ENABLE_VTK_FiltersModeling:STRING=${enable_option_FiltersModeling}
-  -DVTK_MODULE_ENABLE_VTK_FiltersParallel:STRING=${enable_option_FiltersParallel}
-  -DVTK_MODULE_ENABLE_VTK_FiltersPoints:STRING=${enable_option_FiltersPoints}
-  -DVTK_MODULE_ENABLE_VTK_FiltersSources:STRING=${enable_option_FiltersSources}
-  -DVTK_MODULE_ENABLE_VTK_IOGeometry:STRING=${enable_option_IOGeometry}
-  -DVTK_MODULE_ENABLE_VTK_IOLegacy:STRING=${enable_option_IOLegacy}
-  -DVTK_MODULE_ENABLE_VTK_IOImage:STRING=${enable_option_IOImage}
-  -DVTK_MODULE_ENABLE_VTK_IOPLY:STRING=${enable_option_IOPLY}
-  -DVTK_MODULE_ENABLE_VTK_IOInfovis:STRING=${enable_option_IOInfovis}
-
-  #-DVTK_MODULE_ENABLE_VTK_RenderingFreeType:STRING=${enable_option_RenderingFreeType}
-  #-DVTK_MODULE_ENABLE_VTK_RenderingImage:STRING=${enable_option_RenderingImage}
-  #-DVTK_MODULE_ENABLE_VTK_RenderingVolumeOpenGL2:STRING=${enable_option_RenderingVolumeOpenGL2}
-  #-DVTK_MODULE_ENABLE_VTK_RenderingLOD:STRING=${enable_option_RenderingLOD}
-  -DVTK_MODULE_ENABLE_VTK_PoissonReconstruction:STRING=${enable_option_PoissonReconstruction}
+	# Rendering
+  -DVTK_MODULE_ENABLE_VTK_RenderingOpenGL2:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_InteractionStyle:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_InteractionWidgets:STRING=YES
+	# -- sub
+	-DVTK_MODULE_ENABLE_VTK_RenderingFreeType:STRING=YES
+	-DVTK_MODULE_ENABLE_VTK_RenderingImage:STRING=YES
+	-DVTK_MODULE_ENABLE_VTK_RenderingVolumeOpenGL2:STRING=YES
+	-DVTK_MODULE_ENABLE_VTK_RenderingLOD:STRING=YES
+	# Filters
+  -DVTK_MODULE_ENABLE_VTK_FiltersHybrid:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_FiltersModeling:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_FiltersParallel:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_FiltersPoints:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_FiltersSources:STRING=YES
+	# IO
+  -DVTK_MODULE_ENABLE_VTK_IOGeometry:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_IOLegacy:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_IOImage:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_IOPLY:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_IOInfovis:STRING=YES
+	# Remote module
+	-DVTK_MODULE_ENABLE_VTK_PoissonReconstruction:STRING=YES
   ${DICOM_OPTION}
 )
 
