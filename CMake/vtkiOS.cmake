@@ -114,6 +114,7 @@ set(module_options
   IOInfovis
   IOLegacy
   IOPLY
+  IOXML
   InteractionStyle
   InteractionWidgets
   RenderingFreeType
@@ -192,6 +193,7 @@ set(ios_cmake_flags
   -DVTK_MODULE_ENABLE_VTK_IOLegacy:STRING=YES
   -DVTK_MODULE_ENABLE_VTK_IOImage:STRING=YES
   -DVTK_MODULE_ENABLE_VTK_IOPLY:STRING=YES
+  -DVTK_MODULE_ENABLE_VTK_IOXML:STRING=YES
   -DVTK_MODULE_ENABLE_VTK_IOInfovis:STRING=YES
 	# Remote module
 	-DVTK_MODULE_ENABLE_VTK_PoissonReconstruction:STRING=YES
